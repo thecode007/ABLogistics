@@ -1,0 +1,28 @@
+<Project ToolsVersion="4.0" DefaultTargets="Build"
+         xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <OutputName>WarehouseHub</OutputName>
+    <OutputType>Package</OutputType>
+
+    <!-- Default product version used when building via MSBuild -->
+    <Version>1.0.0</Version>
+
+    <!-- App output folder (Compose Desktop) -->
+    <AppSourceDir>..\composeApp\build\compose\binaries\main\app\Warehouse Hub</AppSourceDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Product.wxs" />
+    <Compile Include="AppFiles.wxs" />
+    <Compile Include="Shortcuts.wxs" />
+    <Compile Include="Folders.wxs" />
+    <Compile Include="Permissions.wxs" />
+    <Compile Include="Extras.wxs" />
+    <Compile Include="Shortcuts.Debug.wxs" />
+    <Compile Include="UserData.wxs" />
+    <Compile Include="Env.wxs" />
+  </ItemGroup>
+
+  <Import Project="$(WixTargetsPath)" />
+</Project>

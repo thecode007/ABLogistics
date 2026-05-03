@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <!-- C:\Program Files\WarehouseHub (on 64-bit use ProgramFiles64Folder; we keep 32/64 agnostic here) -->
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="WarehouseHub">
+          <!-- Embedded full JRE goes to INSTALLFOLDER\jre -->
+          <Directory Id="JREINSTALLDIR" Name="jre" />
+        </Directory>
+      </Directory>
+
+      <!-- Start Menu\Programs\WarehouseHub -->
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="WarehouseHub" />
+      </Directory>
+
+      <!-- Desktop special folder -->
+      <Directory Id="DesktopFolder" />
+
+      <!-- User data directory: %LOCALAPPDATA%\.warehousehub -->
+      <Directory Id="LocalAppDataFolder">
+        <Directory Id="UserWarehouseHub" Name=".warehousehub" />
+      </Directory>
+    </Directory>
+  </Fragment>
+</Wix>

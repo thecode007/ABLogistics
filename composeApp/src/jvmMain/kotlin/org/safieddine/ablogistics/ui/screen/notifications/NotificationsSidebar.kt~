@@ -1,0 +1,241 @@
+package org.safieddine.warehousehub.ui.screen.notifications
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.IconButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import io.github.composefluent.FluentTheme
+import io.github.composefluent.component.*
+import io.github.composefluent.icons.Icons
+import io.github.composefluent.icons.regular.ArrowCounterclockwise
+import io.github.composefluent.icons.regular.Dismiss
+import io.github.composefluent.icons.regular.History
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import org.safieddine.warehousehub.data.BaseResponse
+import org.safieddine.warehousehub.data.NotificationListItem
+import org.safieddine.warehousehub.data.session.SessionStore
+import org.safieddine.warehousehub.data.ApproveCustomerUpdateRequest
+import org.safieddine.warehousehub.data.RejectCustomerUpdateRequest
+import org.safieddine.warehousehub.data.service.NotificationService
+
+@Composable
+fun NotificationsSidebar(
+    visible: Boolean,
+    onClose: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    var loading by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var items by remember { mutableStateOf<List<NotificationListItem>>(emptyList()) }
+
+    val defaultLimit = 50
+
+    fun load() {
+        loading = true
+        error = null
+        scope.launch(Dispatchers.IO) {
+            // Fetch only pending decision notifications (type=DECISION, isRead=false)
+            val res = NotificationService.listPendingDecisions(limit = defaultLimit)
+            if (res.isSuccess) {
+                val body: BaseResponse<List<NotificationListItem>>? = res.getOrNull()
+                items = body?.data ?: emptyList()
+                error = if (body?.success == false) body.message else null
+                org.safieddine.warehousehub.data.NotificationManager.updatePendingCount(items.size)
+            } else {
+                error = res.exceptionOrNull()?.message
+            }
+            loading = false
+        }
+    }
+
+    LaunchedEffect(visible) { if (visible) load() }
+
+    Box(Modifier.fillMaxSize()) {
+        AnimatedVisibility(
+            visible = visible,
+            enter = slideInHorizontally(animationSpec = tween(200)) { it },
+            exit = slideOutHorizontally(animationSpec = tween(200)) { it }
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.CenterEnd) {
+                Surface(
+                    tonalElevation = 4.dp,
+                    shadowElevation = 8.dp,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(500.dp)
+                        .padding(end = 50.dp)
+                ) {
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .background(FluentTheme.colors.background.mica.base)
+                    ) {
+                        // Header
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(imageVector = Icons.Regular.History, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Notifications", style = FluentTheme.typography.title.copy(fontSize = 16.sp))
+                            Spacer(Modifier.weight(1f))
+                            IconButton(onClick = onClose) { Icon(imageVector = Icons.Regular.Dismiss, contentDescription = "Close") }
+                        }
+                        HorizontalDivider()
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Spacer(Modifier.weight(1f))
+                            SubtleButton(iconOnly = true, onClick = { load() }) {
+                                Icon(Icons.Default.ArrowCounterclockwise, contentDescription = "Reload")
+                            }
+                        }
+
+                        if (loading) {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { ProgressRing() }
+                        } else {
+                            if (!error.isNullOrBlank()) {
+                                InfoBar(
+                                    title = { },
+                                    message = { Text(error ?: "") },
+                                    closeAction = {
+                                        InfoBarDefaults.CloseActionButton (onClick ={ error = null } )
+                                                  },
+                                    severity = InfoBarSeverity.Critical
+                                )
+                            }
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(items) { n ->
+                                    NotificationItem(
+                                        item = n,
+                                        onApprove = { customerId, req ->
+                                            scope.launch(Dispatchers.IO) {
+                                                val res = org.safieddine.warehousehub.data.service.CustomerService.approveUpdate(customerId, req)
+                                                if (res.isSuccess && (res.getOrNull()?.success == true)) {
+                                                    load()
+                                                } else {
+                                                    error = res.exceptionOrNull()?.message ?: res.getOrNull()?.message
+                                                }
+                                            }
+                                        },
+                                        onReject = { customerId, req ->
+                                            scope.launch(Dispatchers.IO) {
+                                                val res = org.safieddine.warehousehub.data.service.CustomerService.rejectUpdate(customerId, req)
+                                                if (res.isSuccess && (res.getOrNull()?.success == true)) {
+                                                    load()
+                                                } else {
+                                                    error = res.exceptionOrNull()?.message ?: res.getOrNull()?.message
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotificationItem(
+    item: NotificationListItem,
+    onApprove: (Long, ApproveCustomerUpdateRequest) -> Unit,
+    onReject: (Long, RejectCustomerUpdateRequest) -> Unit
+) {
+    val severity = when (item.type.uppercase()) {
+        "DECISION" -> InfoBarSeverity.Warning
+        "ERROR", "ALERT" -> InfoBarSeverity.Critical
+        else -> if (!item.isRead) InfoBarSeverity.Informational else InfoBarSeverity.Success
+    }
+
+    val sentence = StringBuilder("Manager ${item.data["requestedBy"]} of warehouse #${item.data["newWarehouseId"]} requested to approve a customer edit")
+    sentence.append("\n")
+    sentence.append("Name: ${item.data["oldName"]} --> ${item.data["newName"]}")
+    sentence.append("\n")
+    sentence.append("Phone: ${item.data["oldPhoneNumber"]} --> ${item.data["newPhoneNumber"]}")
+    sentence.append("\n")
+    sentence.append("Location: ${item.data["oldLocation"]} --> ${item.data["newLocation"]}")
+
+    var approving by remember { mutableStateOf(false) }
+    var rejecting by remember { mutableStateOf(false) }
+
+    val cid = item.data["customerId"]?.toLongOrNull()
+    val requestedBy = item.data["requestedBy"]
+    val newName = item.data["newName"] ?: item.data["name"]
+    val newPhone = item.data["newPhoneNumber"] ?: item.data["phoneNumber"]
+    val newLocation = item.data["newLocation"] ?: item.data["location"]
+    val newWarehouseId = (item.data["newWarehouseId"] ?: item.data["warehouseId"])?.toLongOrNull()
+
+    InfoBar(
+        modifier = Modifier.padding(horizontal = 8.dp).fillMaxWidth(),
+        title = { Text(item.title) },
+        message = { Text(sentence.toString()) },
+        action = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val isAdmin = SessionStore.currentUser.value?.isAdmin() == true
+                Button(
+                    disabled = !isAdmin || approving || rejecting || cid == null || requestedBy == null,
+                    onClick = {
+                        if (cid != null && requestedBy != null) {
+                            approving = true
+                            onApprove(
+                                cid,
+                                ApproveCustomerUpdateRequest(
+                                    requestedBy = requestedBy,
+                                    name = newName,
+                                    phoneNumber = newPhone,
+                                    location = newLocation,
+                                    warehouseId = newWarehouseId
+                                )
+                            )
+                            approving = false
+                        }
+                    }
+                ) { Text("Approve") }
+
+                Spacer(Modifier.width(8.dp))
+
+                Button(
+                    disabled = !isAdmin || approving || rejecting || cid == null || requestedBy == null,
+                    onClick = {
+                        if (cid != null && requestedBy != null) {
+                            rejecting = true
+                            onReject(cid, RejectCustomerUpdateRequest(requestedBy = requestedBy, reason = null))
+                            rejecting = false
+                        }
+                    }
+                ) { Text("Reject") }
+            }
+        },
+        severity = severity
+    )
+}
+
+
+

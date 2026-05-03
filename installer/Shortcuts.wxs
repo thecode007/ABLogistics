@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+
+  <Fragment>
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="StartMenuShortcut" Guid="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+        <Shortcut Id="WarehouseHubShortcut"
+                  Name="Warehouse Hub"
+                  Target="[INSTALLFOLDER]Warehouse Hub.exe"
+                  WorkingDirectory="INSTALLFOLDER"/>
+        <RemoveFolder Id="RemoveStartMenuFolder" On="uninstall"/>
+        <RegistryValue Root="HKCU" Key="Software\WarehouseHub"
+                       Name="installed" Type="integer"
+                       Value="1" KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+
+    <ComponentGroup Id="ShortcutGroup">
+      <ComponentRef Id="StartMenuShortcut"/>
+    </ComponentGroup>
+  </Fragment>
+
+</Wix>

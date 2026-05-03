@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <Package
+      Name="WarehouseHub"
+      Manufacturer="Abdallah Safieddine"
+      Version="$(Version)"
+      UpgradeCode="9f1c2b23-7b45-4bb8-91fb-9f7ebc900123">
+
+    <!-- Single embedded cab -->
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Icon shown in Apps & Features (you provide warehousehub.ico in installer folder) -->
+    <Icon Id="WarehouseHubIcon" SourceFile="warehousehub.ico" />
+    <Property Id="ARPPRODUCTICON" Value="WarehouseHubIcon" />
+
+    <!-- Upgrades: new version replaces old, prevent downgrade -->
+    <MajorUpgrade
+        DowngradeErrorMessage="A newer version of WarehouseHub is already installed." />
+
+    <!-- One feature that pulls in all app files + shortcuts -->
+    <Feature Id="Main" Title="WarehouseHub" Level="1">
+      <!-- All harvested app files from AppFiles.wxs -->
+      <ComponentGroupRef Id="AppFilesGroup" />
+      <!-- Our custom shortcut component -->
+      <ComponentGroupRef Id="WarehouseHubShortcuts" />
+    </Feature>
+
+  </Package>
+</Wix>

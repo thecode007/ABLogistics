@@ -1,0 +1,1 @@
+auth: auto-select manager warehouse on login and app enter
