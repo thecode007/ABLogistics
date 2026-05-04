@@ -108,7 +108,7 @@ fun BrandingLogoAnimation() {
     )
 
     Image(
-        painter = painterResource(Res.drawable.ab_logo),
+        painter = painterResource(Res.drawable.splash_logo),
         contentDescription = "AB LOGISTICS LTD Logo",
         modifier = Modifier
             .size(200.dp)
