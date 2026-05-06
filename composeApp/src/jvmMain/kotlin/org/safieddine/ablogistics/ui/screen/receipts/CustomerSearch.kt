@@ -16,7 +16,7 @@ import io.github.composefluent.ExperimentalFluentApi
 import io.github.composefluent.component.AutoSuggestBoxDefaults
 import io.github.composefluent.component.AutoSuggestionBox
 import io.github.composefluent.component.ListItem
-import io.github.composefluent.component.TextField
+import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
 import kotlinx.coroutines.flow.map
 import org.safieddine.ablogistics.data.CustomerResponse
 import androidx.compose.material.Text
@@ -42,7 +42,7 @@ fun CustomerSearch(
         onExpandedChange = { expanded = it },
         modifier = modifier
     ) {
-        TextField(
+        ABLogisticsTextField(
             value = keyword,
             onValueChange = { keyword = it; expanded = true },
             shape = AutoSuggestBoxDefaults.textFieldShape(expanded),

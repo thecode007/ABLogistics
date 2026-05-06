@@ -3,7 +3,6 @@ package org.safieddine.ablogistics.ui.screen.adminScreen
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -13,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import io.github.composefluent.component.ContentDialog
 import io.github.composefluent.component.ContentDialogButton
 import io.github.composefluent.component.DialogSize
+import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -107,13 +107,13 @@ fun WarehouseDialog(
         content = {
             Column(Modifier.fillMaxWidth()) {
                 // Warehouse Name Field
-                OutlinedTextField(
+                ABLogisticsTextField(
                     value = name,
                     onValueChange = {
                         name = it
                         nameTouched = true
                     },
-                    label = { Text(stringResource(Res.string.warehouse_name)) },
+                    header = { Text(stringResource(Res.string.warehouse_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     isError = nameTouched && !isNameValid,
                     singleLine = true,

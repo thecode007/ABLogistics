@@ -28,8 +28,10 @@ import org.safieddine.ablogistics.ui.screen.receipts.ReceiptsAdminScreen
 import org.safieddine.ablogistics.ui.screen.receipts.WarehouseSummaryScreen
 import org.safieddine.ablogistics.ui.screen.DistributorScreen
 import org.safieddine.ablogistics.ui.screen.SettingsScreen
+import org.safieddine.ablogistics.ui.screen.fleet.FleetScreen
 import ablogistics.composeapp.generated.resources.*
 import io.github.composefluent.component.rememberIndicatorState
+import io.github.composefluent.icons.filled.VehicleTruckProfile
 import io.github.composefluent.icons.regular.*
 
 data class NavigationItem(
@@ -51,8 +53,8 @@ sealed class AppScreen(val title: String) {
     object Login : AppScreen("Login")
     object Distributors : AppScreen("Distributors")
     object Settings : AppScreen("Settings")
+    object Fleet : AppScreen("Fleet Tracking")
 }
-
 
 @Composable
 fun TeamsNavigationRail(
@@ -62,6 +64,11 @@ fun TeamsNavigationRail(
             "Dashboard",
             io.github.composefluent.icons.Icons.Default.Apps,
             AppScreen.Dashboard
+        ),
+        NavigationItem(
+            "Fleet",
+            Icons.Filled.VehicleTruckProfile,
+            AppScreen.Fleet
         ),
         NavigationItem(
             stringResource(Res.string.nav_customers),
@@ -122,6 +129,9 @@ fun TeamsNavigationRail(
                 }
                 is AppScreen.Settings -> {
                     SettingsScreen()
+                }
+                is AppScreen.Fleet -> {
+                    FleetScreen()
                 }
                 else -> {}
             }

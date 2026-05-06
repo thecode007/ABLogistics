@@ -2,11 +2,9 @@ package org.safieddine.ablogistics.ui.screen.adminScreen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.Text
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import org.safieddine.ablogistics.ui.theme.ABLogisticsSubtleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,6 +17,7 @@ import io.github.composefluent.FluentTheme
 import io.github.composefluent.icons.Icons
 import io.github.composefluent.icons.filled.AddSquare
 import io.github.composefluent.icons.filled.ArrowCounterclockwise
+import io.github.composefluent.surface.Card
 
 @Composable
 fun HeaderWithAction(
@@ -28,8 +27,7 @@ fun HeaderWithAction(
     onRefresh: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RectangleShape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
+        shape = RectangleShape
     ) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
@@ -51,14 +49,14 @@ fun HeaderWithAction(
                 textAlign = TextAlign.Start
             )
 
-            IconButton(onClick = onRefresh) {
+            ABLogisticsSubtleButton(iconOnly = true, onClick = onRefresh) {
                 Icon(modifier = Modifier.size(25.dp),
                     imageVector = Icons.Filled.ArrowCounterclockwise,
                     contentDescription = "Refresh",
                     tint = FluentTheme.colors.background.mica.base)
             }
 
-            IconButton(onClick = onAdd) {
+            ABLogisticsSubtleButton(iconOnly = true, onClick = onAdd) {
                 Icon(modifier = Modifier.size(25.dp),
                     imageVector = Icons.Filled.AddSquare,
                     contentDescription = "Add",

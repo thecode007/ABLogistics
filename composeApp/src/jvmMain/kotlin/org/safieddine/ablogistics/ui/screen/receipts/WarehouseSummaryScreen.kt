@@ -33,6 +33,9 @@ import org.safieddine.ablogistics.data.session.WarehouseFundsStore
 import org.safieddine.ablogistics.ui.screen.adminScreen.UserTableShimmerRow
 import java.util.*
 import kotlin.time.ExperimentalTime
+import org.safieddine.ablogistics.ui.theme.ABLogisticsButton
+import org.safieddine.ablogistics.ui.theme.ABLogisticsSubtleButton
+import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
 
 @OptIn(ExperimentalFluentApi::class, ExperimentalTime::class)
 @Composable
@@ -138,7 +141,7 @@ fun ColumnScope.WarehouseSummaryScreen() {
             )
         }
 
-        SubtleButton(iconOnly = true, onClick = {
+        ABLogisticsSubtleButton(iconOnly = true, onClick = {
             clearDatesKey = System.currentTimeMillis()
             startDate = null
             endDate = null
@@ -150,7 +153,7 @@ fun ColumnScope.WarehouseSummaryScreen() {
         }
 
         Spacer(Modifier.width(5.dp))
-        SubtleButton(iconOnly = true, onClick = { load() }) {
+        ABLogisticsSubtleButton(iconOnly = true, onClick = { load() }) {
             Icon(Icons.Regular.ArrowCounterclockwise,
                 contentDescription = stringResource(Res.string.reload))
         }
@@ -383,11 +386,11 @@ fun ColumnScope.WarehouseSummaryScreen() {
     ) {
         Text("Page ${data.number + 1} / ${maxOf(data.totalPages, 1)}")
         Spacer(Modifier.width(8.dp))
-        Button(disabled = page <= 0, onClick = {
+        ABLogisticsButton(disabled = page <= 0, onClick = {
             if (page > 0) { page -= 1; load() }
         }) { Text(stringResource(Res.string.prev)) }
         Spacer(Modifier.width(8.dp))
-        Button(disabled = page >= data.totalPages - 1, onClick = {
+        ABLogisticsButton(disabled = page >= data.totalPages - 1, onClick = {
             if (page < data.totalPages - 1) { page += 1; load() }
         }) { Text(stringResource(Res.string.next)) }
     }

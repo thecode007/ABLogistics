@@ -22,6 +22,8 @@ import io.github.composefluent.icons.Icons
 import io.github.composefluent.icons.regular.ArrowCounterclockwise
 import io.github.composefluent.icons.regular.Dismiss
 import io.github.composefluent.icons.regular.History
+import org.safieddine.ablogistics.ui.theme.ABLogisticsButton
+import org.safieddine.ablogistics.ui.theme.ABLogisticsSubtleButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.safieddine.ablogistics.data.BaseResponse
@@ -105,7 +107,7 @@ fun NotificationsSidebar(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Spacer(Modifier.weight(1f))
-                            SubtleButton(iconOnly = true, onClick = { load() }) {
+                            ABLogisticsSubtleButton(iconOnly = true, onClick = { load() }) {
                                 Icon(Icons.Default.ArrowCounterclockwise, contentDescription = "Reload")
                             }
                         }
@@ -199,7 +201,7 @@ private fun NotificationItem(
         action = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val isAdmin = SessionStore.currentUser.value?.isAdmin() == true
-                Button(
+                ABLogisticsButton(
                     disabled = !isAdmin || approving || rejecting || cid == null || requestedBy == null,
                     onClick = {
                         if (cid != null && requestedBy != null) {
@@ -221,7 +223,7 @@ private fun NotificationItem(
 
                 Spacer(Modifier.width(8.dp))
 
-                Button(
+                ABLogisticsButton(
                     disabled = !isAdmin || approving || rejecting || cid == null || requestedBy == null,
                     onClick = {
                         if (cid != null && requestedBy != null) {

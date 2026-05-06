@@ -22,7 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.composefluent.FluentTheme
 import io.github.composefluent.ExperimentalFluentApi
-import io.github.composefluent.component.Button
+import org.safieddine.ablogistics.ui.theme.ABLogisticsButton
+import org.safieddine.ablogistics.ui.theme.ABLogisticsSubtleButton
 import io.github.composefluent.component.CalendarDatePicker
 import io.github.composefluent.component.SubtleButton
 import io.github.composefluent.component.Icon
@@ -194,7 +195,7 @@ fun LogsSidebar(
                         }
 
 
-                        SubtleButton(iconOnly = true, onClick = {
+                        ABLogisticsSubtleButton(iconOnly = true, onClick = {
                             clearDatesKey = System.currentTimeMillis()
                             startDate = null
                             endDate = null
@@ -284,7 +285,7 @@ private fun LogItem(log: LogResponse,
             Icon(imageVector = icon, contentDescription = null, tint = color)
         },
         trailing = {
-            Button(onClick = { onUndo() }, content = {
+            ABLogisticsButton(onClick = { onUndo() }, content = {
                 if (isLoading) ProgressRing(Modifier.size(15.dp))
                 else Text("Undo")
             }, disabled = isLoading)

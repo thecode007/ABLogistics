@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.Text
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +38,10 @@ import org.safieddine.ablogistics.ui.screen.WarehouseStatementScreen
 import org.safieddine.ablogistics.ui.theme.DeleteDialog
 import java.util.Locale
 import kotlin.time.ExperimentalTime
+import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
+import org.safieddine.ablogistics.ui.theme.ABLogisticsButton
+import org.safieddine.ablogistics.ui.theme.ABLogisticsSubtleButton
+import org.safieddine.ablogistics.ui.theme.ABLogisticsAccentButton
 
 @OptIn(ExperimentalTime::class, ExperimentalFluentApi::class)
 @Composable
@@ -132,7 +135,7 @@ fun ReceiptsAdminScreen() {
                 Modifier.fillMaxWidth().padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextField(
+                ABLogisticsTextField(
                     modifier = Modifier.width(300.dp),
                     value = search,
                     onValueChange = { search = it },
@@ -198,7 +201,7 @@ fun ReceiptsAdminScreen() {
 
 
 
-                SubtleButton(
+                ABLogisticsSubtleButton(
                     iconOnly = true,
                     onClick = {
                         clearDatesKey = System.currentTimeMillis()
@@ -218,21 +221,21 @@ fun ReceiptsAdminScreen() {
 
                 Spacer(Modifier.width(5.dp))
 
-                SubtleButton(iconOnly = true, onClick = { load() }) {
+                ABLogisticsSubtleButton(iconOnly = true, onClick = { load() }) {
                     Icon(
                         Icons.Default.ArrowCounterclockwise,
                         contentDescription = stringResource(Res.string.reload)
                     )
                 }
                 Spacer(Modifier.width(6.dp))
-                SubtleButton(iconOnly = true, onClick = { showForm = true }) {
+                ABLogisticsSubtleButton(iconOnly = true, onClick = { showForm = true }) {
                     Icon(
                         Icons.Default.Add,
                         contentDescription = stringResource(Res.string.add_receipt)
                     )
                 }
                 Spacer(Modifier.width(6.dp))
-                SubtleButton(
+                ABLogisticsSubtleButton(
                     iconOnly = true,
                     onClick = { showStatement = true }
                 ) {
@@ -519,13 +522,13 @@ fun ReceiptsAdminScreen() {
             ) {
                 Text("Page ${data.number + 1} / ${maxOf(data.totalPages, 1)}")
                 Spacer(Modifier.width(8.dp))
-                Button(disabled = page <= 0, onClick = {
+                ABLogisticsButton(disabled = page <= 0, onClick = {
                     if (page > 0) {
                         page -= 1; load()
                     }
                 }) { Text("Prev") }
                 Spacer(Modifier.width(8.dp))
-                Button(
+                ABLogisticsButton(
                     disabled = page >= data.totalPages - 1,
                     onClick = {
                         if (page < data.totalPages - 1) {
@@ -627,10 +630,10 @@ fun ReceiptsAdminScreen() {
             },
             content = {
                 Column(Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
+                    ABLogisticsTextField(
                         value = receiptId,
                         onValueChange = { receiptId = it },
-                        label = { Text("Receipt ID") },
+                        header = { Text("Receipt ID") },
                         isError = touched && receiptId.isBlank(),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
@@ -666,22 +669,13 @@ fun ReceiptsAdminScreen() {
                         Text("Selected: $label")
                     }
                     Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
+                    ABLogisticsTextField(
                         value = amount,
-                        onValueChange = {
-                            amount =
-                                it.filter { ch -> ch.isDigit() || ch == '.' }
-                                    .replace(Regex("\\.(?=.*\\.)"), "")
-                            it.filter { ch -> ch.isDigit() || ch == '.' }
+                        onValueChange = { newVal ->
+                            amount = newVal.filter { ch -> ch.isDigit() || ch == '.' }
                                 .replace(Regex("\\.(?=.*\\.)"), "")
                         },
-                        label = { Text("Amount") },
-                        supportingText = {
-                            if (amount.isNotBlank()) {
-                                val v = amount.toDoubleOrNull()
-                                if (v != null) Text(formatLocalized(v, Locale.getDefault()))
-                            }
-                        },
+                        header = { Text("Amount") },
                         isError = touched && (amount.toDoubleOrNull()?.let { it > 0 } != true),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth())
@@ -694,10 +688,10 @@ fun ReceiptsAdminScreen() {
                         }
                         Spacer(Modifier.height(8.dp))
                     }
-                    OutlinedTextField(
+                    ABLogisticsTextField(
                         value = description,
                         onValueChange = { description = it },
-                        label = { Text("Description (optional)") },
+                        header = { Text("Description (optional)") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -766,9 +760,9 @@ fun ReceiptsAdminScreen() {
             },
             content = {
                 Column(Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
+                    ABLogisticsTextField(
                         value = receiptId, onValueChange = { receiptId = it },
-                        label = { Text(stringResource(Res.string.receipt_id)) },
+                        header = { Text(stringResource(Res.string.receipt_id)) },
                         isError = touched && receiptId.isBlank(),
                         singleLine = true, modifier = Modifier.fillMaxWidth()
                     )
@@ -802,27 +796,23 @@ fun ReceiptsAdminScreen() {
                         Text("Selected: $label")
                     }
                     Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
+                    ABLogisticsTextField(
                         value = amount,
-                        onValueChange = {
-                            amount = it.filter { ch -> ch.isDigit() || ch == '.' }
+                        onValueChange = { newVal ->
+                            amount = newVal.filter { ch -> ch.isDigit() || ch == '.' }
                                 .replace(Regex("\\.(?=.*\\.)"), "")
                         },
-                        label = { Text(stringResource(Res.string.amount)) },
-                        supportingText = {
-                            if (amount.isNotBlank()) {
-                                val v = amount.toDoubleOrNull()
-                                if (v != null) Text(formatLocalized(v, Locale.getDefault()))
-                            }
-                        },
+                        header = { Text(stringResource(Res.string.amount)) },
                         isError = touched && (amount.toDoubleOrNull()?.let { it > 0 } != true),
-                        singleLine = true, modifier = Modifier.fillMaxWidth())
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
 
                     Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
+                    ABLogisticsTextField(
                         value = description, onValueChange = { description = it },
-                        label = { Text(stringResource(Res.string.description_optional)) },
+                        header = { Text(stringResource(Res.string.description_optional)) },
                         singleLine = true, modifier = Modifier.fillMaxWidth()
                     )
                 }

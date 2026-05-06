@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -316,11 +317,11 @@ fun CountryPickerTextField(
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
-    OutlinedTextField(
+    ABLogisticsTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier,
-        label = { Text(label) },
+        header = { Text(label) },
         placeholder = { Text(placeholder) },
         singleLine = true,
         leadingIcon = {

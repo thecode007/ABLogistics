@@ -35,12 +35,6 @@ class LoginViewModel(
         )
     }
 
-    fun togglePasswordVisibility() {
-        _uiState.value = _uiState.value.copy(
-            passwordVisible = !_uiState.value.passwordVisible
-        )
-    }
-
     fun login() {
         val currentState = _uiState.value
 
@@ -100,7 +94,6 @@ class LoginViewModel(
 data class LoginUiState(
     val username: String = "",
     val password: String = "",
-    val passwordVisible: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )

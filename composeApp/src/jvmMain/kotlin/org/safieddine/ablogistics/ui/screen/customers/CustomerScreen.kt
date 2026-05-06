@@ -10,7 +10,6 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +42,9 @@ import org.safieddine.ablogistics.ui.theme.DeleteDialog
 import ablogistics.composeapp.generated.resources.*
 import org.safieddine.ablogistics.ui.screen.receipts.formatLocalized
 import java.util.Locale
+import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
+import org.safieddine.ablogistics.ui.theme.ABLogisticsSubtleButton
+import org.safieddine.ablogistics.ui.theme.ABLogisticsButton
 
 @Composable
 fun ColumnScope.  CustomerScreen() {
@@ -92,7 +94,7 @@ fun ColumnScope.  CustomerScreen() {
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        TextField(
+        ABLogisticsTextField(
             value = query,
             onValueChange = { query = it },
             placeholder = {
@@ -103,11 +105,11 @@ fun ColumnScope.  CustomerScreen() {
         )
 
         Spacer(Modifier.width(8.dp))
-        SubtleButton(iconOnly = true, onClick = { load() }) {
+        ABLogisticsSubtleButton(iconOnly = true, onClick = { load() }) {
             Icon(Icons.Default.ArrowCounterclockwise, contentDescription = null)
         }
         Spacer(Modifier.width(6.dp))
-        SubtleButton(iconOnly = true, onClick = { editing = null; showForm = true }) {
+        ABLogisticsSubtleButton(iconOnly = true, onClick = { editing = null; showForm = true }) {
             Icon(Icons.Default.Add, contentDescription = null)
         }
     }
@@ -377,20 +379,20 @@ fun ColumnScope.  CustomerScreen() {
             },
             content = {
                 Column(Modifier.fillMaxWidth().padding(12.dp)) {
-                    OutlinedTextField(
+                    ABLogisticsTextField(
                         value = name,
                         onValueChange = { name = it; nameTouched = true },
-                        label = { Text(stringResource(Res.string.full_name)) },
+                        header = { Text(stringResource(Res.string.full_name)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         isError = nameTouched && !isNameValid,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                     )
                     Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
+                    ABLogisticsTextField(
                         value = phone,
                         onValueChange = { phone = it; phoneTouched = true },
-                        label = { Text(stringResource(Res.string.phone_number)) },
+                        header = { Text(stringResource(Res.string.phone_number)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         isError = phoneTouched && !isPhoneValid,
@@ -400,10 +402,10 @@ fun ColumnScope.  CustomerScreen() {
                         )
                     )
                     Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
+                    ABLogisticsTextField(
                         value = location,
                         onValueChange = { location = it; locationTouched = true },
-                        label = { Text(stringResource(Res.string.location)) },
+                        header = { Text(stringResource(Res.string.location)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         isError = locationTouched && !isLocationValid,

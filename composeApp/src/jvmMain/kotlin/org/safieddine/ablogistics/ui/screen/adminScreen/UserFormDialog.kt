@@ -3,9 +3,8 @@ package org.safieddine.ablogistics.ui.screen.adminScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
+import io.github.composefluent.component.ProgressRing
+import io.github.composefluent.component.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,6 +18,8 @@ import io.github.composefluent.component.ContentDialog
 import io.github.composefluent.component.ContentDialogButton
 import io.github.composefluent.component.DialogSize
 import io.github.composefluent.component.Switcher
+import io.github.composefluent.component.Switcher
+import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -177,13 +178,13 @@ fun UserFormDialog(
             },
             content = {
                 Column(Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
+                    ABLogisticsTextField(
                         value = fullName,
                         onValueChange = {
                             fullName = it
                             fullNameTouched = true
                         },
-                        label = { Text(stringResource(Res.string.full_name)) },
+                        header = { Text(stringResource(Res.string.full_name)) },
                         modifier = Modifier.fillMaxWidth(),
                         isError = fullNameTouched && !isFullNameValid,
                         singleLine = true,
@@ -193,13 +194,13 @@ fun UserFormDialog(
 
                     Spacer(Modifier.height(8.dp))
 
-                    OutlinedTextField(
+                    ABLogisticsTextField(
                         value = username,
                         onValueChange = {
                             username = it
                             usernameTouched = true
                         },
-                        label = { Text(stringResource(Res.string.username)) },
+                        header = { Text(stringResource(Res.string.username)) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = existingUser == null && !isSubmitting,
                         isError = usernameTouched && !isUsernameValid,
@@ -209,13 +210,13 @@ fun UserFormDialog(
 
                     Spacer(Modifier.height(8.dp))
 
-                    OutlinedTextField(
+                    ABLogisticsTextField(
                         value = phoneNumber,
                         onValueChange = {
                             phoneNumber = it
                             phoneTouched = true
                         },
-                        label = { Text(stringResource(Res.string.phone_number)) },
+                        header = { Text(stringResource(Res.string.phone_number)) },
                         modifier = Modifier.fillMaxWidth(),
                         isError = phoneTouched && !isPhoneValid,
                         singleLine = true,
@@ -228,13 +229,13 @@ fun UserFormDialog(
 
                     Spacer(Modifier.height(8.dp))
 
-                    OutlinedTextField(
+                    ABLogisticsTextField(
                         value = password,
                         onValueChange = {
                             password = it
                             passwordTouched = true
                         },
-                        label = {
+                        header = {
                             Text(
                                 if (existingUser == null)
                                     stringResource(Res.string.password)
@@ -296,7 +297,7 @@ fun UserFormDialog(
                     .background(Color.Black.copy(alpha = 0.3f)),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                ProgressRing()
             }
         }
     }

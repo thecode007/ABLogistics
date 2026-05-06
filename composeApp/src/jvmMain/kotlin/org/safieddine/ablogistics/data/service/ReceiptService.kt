@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.safieddine.ablogistics.data.*
+import org.safieddine.ablogistics.data.ProfitAnalysisResponse
 import org.safieddine.ablogistics.data.config.AppConfig
 import org.safieddine.ablogistics.data.session.SessionStore
 
@@ -195,8 +196,16 @@ object ReceiptService {
     suspend fun getProfitAnalysis(): Result<BaseResponse<ProfitAnalysisDTO>> =
         withContext(Dispatchers.IO) {
             try {
-                val res: BaseResponse<ProfitAnalysisDTO> = client.get("/api/v1/logistics/profit-analysis").body()
-                if (res.success) Result.success(res)
+                val res: BaseResponse<List<ProfitAnalysisResponse>> = client.get("/api/v1/logistics/profit-analysis").body()
+                if (res.success) {
+                    val list = res.data ?: emptyList()
+                    val aggregated = ProfitAnalysisDTO(
+                        totalProfit = list.sumOf { it.totalProfit },
+                        expectedRevenue = list.sumOf { it.totalExpectedRevenue },
+                        totalQuantityLoaded = list.sumOf { it.totalQuantityLoaded }
+                    )
+                    Result.success(BaseResponse(success = true, message = res.message, code = "200", data = aggregated, timestamp = System.currentTimeMillis()))
+                }
                 else Result.failure(Exception(res.message))
             } catch (e: Exception) {
                 Result.failure(Exception("Failed to get profit analysis: ${e.message}"))

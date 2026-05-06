@@ -11,7 +11,7 @@ import io.github.composefluent.ExperimentalFluentApi
 import io.github.composefluent.component.AutoSuggestBoxDefaults
 import io.github.composefluent.component.AutoSuggestionBox
 import io.github.composefluent.component.ListItem
-import io.github.composefluent.component.TextField
+import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
 import kotlinx.coroutines.flow.map
 import org.safieddine.ablogistics.data.UserDTO
 
@@ -39,7 +39,7 @@ fun UserAutoSuggestionBox(
         onExpandedChange = { expanded = it },
         modifier = modifier
     ) {
-        TextField(
+        ABLogisticsTextField(
             value = keyword,
             onValueChange = { new ->
                 keyword = new

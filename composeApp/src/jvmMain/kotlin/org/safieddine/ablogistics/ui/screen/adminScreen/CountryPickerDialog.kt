@@ -11,10 +11,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
+import org.safieddine.ablogistics.ui.theme.ABLogisticsSubtleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Dialog
 
 @Composable
@@ -58,7 +59,7 @@ fun CountryPickerDialog(
                     modifier = Modifier.padding(16.dp)
                 )
 
-                OutlinedTextField(
+                ABLogisticsTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     placeholder = { Text("Search country…") },
@@ -81,7 +82,7 @@ fun CountryPickerDialog(
                     }
                 }
 
-                TextButton(
+                ABLogisticsSubtleButton(
                     onClick = onDismiss,
                     modifier = Modifier.align(Alignment.End).padding(16.dp)
                 ) {
