@@ -112,7 +112,7 @@ fun AdminScreen(
                 warehousesViewModel.createWarehouse(
                     it.name,
                     it.location ?: "",
-                    it.totalFunds ?: 0.0,
+                    it.totalFunds ?: java.math.BigDecimal.ZERO,
                     it.isoCode
                 )
             }

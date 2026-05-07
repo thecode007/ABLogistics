@@ -32,9 +32,9 @@ fun DashboardScreen() {
                 val profitRes = ReceiptService.getProfitAnalysis()
                 if (profitRes.isSuccess) {
                     val data = profitRes.getOrNull()?.data
-                    totalProfit = data?.totalProfit ?: 0.0
-                    expectedRevenue = data?.expectedRevenue ?: 0.0
-                    totalQuantityLoaded = data?.totalQuantityLoaded ?: 0.0
+                    totalProfit = data?.totalProfit?.toDouble() ?: 0.0
+                    expectedRevenue = data?.expectedRevenue?.toDouble() ?: 0.0
+                    totalQuantityLoaded = data?.totalQuantityLoaded?.toDouble() ?: 0.0
                 } else {
                     errorMessage = profitRes.exceptionOrNull()?.message ?: "Failed to fetch profit analysis"
                 }
@@ -43,8 +43,8 @@ fun DashboardScreen() {
                 val debtRes = ReceiptService.getDebtSummary()
                 if (debtRes.isSuccess) {
                     val data = debtRes.getOrNull()?.data
-                    supplierDebt = data?.supplierDebt ?: 0.0
-                    customerDebt = data?.customerDebt ?: 0.0
+                    supplierDebt = data?.supplierDebt?.toDouble() ?: 0.0
+                    customerDebt = data?.customerDebt?.toDouble() ?: 0.0
                 } else {
                     if (errorMessage == null) {
                         errorMessage = debtRes.exceptionOrNull()?.message ?: "Failed to fetch debt summary"

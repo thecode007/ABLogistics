@@ -1,12 +1,13 @@
 package org.safieddine.ablogistics.data
 
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
 
 @Serializable
 enum class ReceiptType { INWARD, OUTWARD, RETURNED }
 
 @Serializable
-enum class EntityType { WAREHOUSE, CUSTOMER }
+enum class EntityType { WAREHOUSE, CUSTOMER, SUPPLIER }
 
 @Serializable
 data class CreateReceiptRequest(
@@ -15,7 +16,8 @@ data class CreateReceiptRequest(
     val entityType: EntityType,
     val warehouseId: Long,
     val customerId: Long? = null,
-    val amount: Double,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val amount: BigDecimal,
     val description: String? = null,
     val createdAtMillis: Long? = null
 )
@@ -23,18 +25,39 @@ data class CreateReceiptRequest(
 @Serializable
 data class ReceiptResponse(
     val id: Long,
-    val receiptId: String,
+    val receiptId: String? = null,
     val receiptType: ReceiptType,
     val entityType: EntityType,
     val warehouseId: Long,
-    val customerId: Long?,
-    val amount: Double,
-    val beforeImpactFunds: Double,
-    val afterImpactFunds: Double,
+    val customerId: Long? = null,
+    val supplierId: Long? = null,
+    val brvId: Long? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val amount: BigDecimal,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val beforeImpactFunds: BigDecimal,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val afterImpactFunds: BigDecimal,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val warehouseRealFundsBefore: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val warehouseRealFundsAfter: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val costPrice: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val sellingPrice: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val loadedQuantity: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val dispatchedQuantity: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val brvCost: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val shortagePenalty: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val profit: BigDecimal? = null,
     val isReturned: Boolean,
     val isReturnAdjustment: Boolean,
-    val warehouseRealFundsBefore: Double,
-    val warehouseRealFundsAfter: Double,
     val description: String?,
     val createdBy: String,
     val createdAt: String?
@@ -54,7 +77,8 @@ data class UpdateReceiptRequest(
     val receiptId: String? = null,
     val receiptType: ReceiptType,
     val entityType: EntityType,
-    val amount: Double,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val amount: BigDecimal,
     val description: String? = null,
     val customerId: Long? = null,
     val returned: Boolean? = null,
@@ -63,5 +87,6 @@ data class UpdateReceiptRequest(
 
 @Serializable
 data class PartialReturnRequest(
-    val paidAmount: Double
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val paidAmount: BigDecimal
 )

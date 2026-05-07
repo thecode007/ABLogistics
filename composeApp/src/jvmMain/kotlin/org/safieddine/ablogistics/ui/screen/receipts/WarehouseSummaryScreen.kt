@@ -51,10 +51,10 @@ fun ColumnScope.WarehouseSummaryScreen() {
     var endDate by remember { mutableStateOf<Long?>(null) }
     var clearDatesKey by remember { mutableStateOf(System.currentTimeMillis()) }
 
-    var inboundWarehouse by remember { mutableStateOf(0.0) }
-    var outboundWarehouse by remember { mutableStateOf(0.0) }
-    var inboundCustomer by remember { mutableStateOf(0.0) }
-    var outboundCustomer by remember { mutableStateOf(0.0) }
+    var inboundWarehouse by remember { mutableStateOf(java.math.BigDecimal.ZERO) }
+    var outboundWarehouse by remember { mutableStateOf(java.math.BigDecimal.ZERO) }
+    var inboundCustomer by remember { mutableStateOf(java.math.BigDecimal.ZERO) }
+    var outboundCustomer by remember { mutableStateOf(java.math.BigDecimal.ZERO) }
 
     // Pagination
     var page by remember { mutableStateOf(0) }
@@ -86,10 +86,10 @@ fun ColumnScope.WarehouseSummaryScreen() {
                         totalElements = summary.totalElements,
                         totalPages = summary.totalPages
                     )
-                    inboundWarehouse = summary.inboundByEntityType["WAREHOUSE"] ?: 0.0
-                    outboundWarehouse = summary.outboundByEntityType["WAREHOUSE"] ?: 0.0
-                    inboundCustomer = summary.inboundByEntityType["CUSTOMER"] ?: 0.0
-                    outboundCustomer = summary.outboundByEntityType["CUSTOMER"] ?: 0.0
+                    inboundWarehouse = summary.inboundByEntityType["WAREHOUSE"] ?: java.math.BigDecimal.ZERO
+                    outboundWarehouse = summary.outboundByEntityType["WAREHOUSE"] ?: java.math.BigDecimal.ZERO
+                    inboundCustomer = summary.inboundByEntityType["CUSTOMER"] ?: java.math.BigDecimal.ZERO
+                    outboundCustomer = summary.outboundByEntityType["CUSTOMER"] ?: java.math.BigDecimal.ZERO
                     error = null
                     // Update funds in title bar
                     WarehouseFundsStore.refresh(wh)
@@ -184,17 +184,16 @@ fun ColumnScope.WarehouseSummaryScreen() {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                InboundArrow(amount = "%.2f".format(inboundWarehouse))
-                val total = inboundWarehouse - outboundWarehouse
+                InboundArrow(amount = inboundWarehouse.toPlainString())
+                val total = inboundWarehouse.subtract(outboundWarehouse)
                 val locale = Locale.getDefault()
-                val numericValue = parseLocalizedNumber("%.2f".format(total), locale)
-                val formattedValue = formatLocalized(numericValue, locale)
+                val formattedValue = formatLocalized(total, locale)
                 Text(
                     text = formattedValue,
                     color = FluentTheme.colors.system.success,
                     fontWeight = FontWeight.SemiBold
                 )
-                OutboundArrow(amount = "%.2f".format(outboundWarehouse))
+                OutboundArrow(amount = outboundWarehouse.toPlainString())
             }
 
             Card(Modifier) {
@@ -211,17 +210,16 @@ fun ColumnScope.WarehouseSummaryScreen() {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                InboundArrow(amount = "%.2f".format(outboundCustomer))
-                val total = outboundCustomer - inboundCustomer
+                InboundArrow(amount = outboundCustomer.toPlainString())
+                val total = outboundCustomer.subtract(inboundCustomer)
                 val locale = Locale.getDefault()
-                val numericValue = parseLocalizedNumber("%.2f".format(total), locale)
-                val formattedValue = formatLocalized(numericValue, locale)
+                val formattedValue = formatLocalized(total, locale)
                 Text(
                     text = formattedValue,
                     color = FluentTheme.colors.system.success,
                     fontWeight = FontWeight.SemiBold
                 )
-                OutboundArrow(amount = "%.2f".format(inboundCustomer))
+                OutboundArrow(amount = inboundCustomer.toPlainString())
             }
 
             Card(Modifier) {
@@ -331,7 +329,7 @@ fun ColumnScope.WarehouseSummaryScreen() {
                                 tint = FluentTheme.colors.background.smoke.default,
                                 modifier = Modifier.size(14.dp))
                         }
-                        Text(r.receiptId, Modifier.weight(1f), textAlign = TextAlign.Center)
+                        Text(r.receiptId ?: "N/A", Modifier.weight(1f), textAlign = TextAlign.Center)
                         Row(Modifier.weight(0.8f), horizontalArrangement = Arrangement.Center) {
                             Icon(icon, contentDescription = "", tint = statusColor)
                             Spacer(Modifier.width(4.dp))
@@ -351,7 +349,7 @@ fun ColumnScope.WarehouseSummaryScreen() {
                         ) {
                             Text(
                                 color = previousColor,
-                                text = formatLocalized(r.warehouseRealFundsBefore, Locale.getDefault()),
+                                text = formatLocalized(r.warehouseRealFundsBefore.toDouble(), Locale.getDefault()),
                                 textAlign = TextAlign.Center
                             )
 
@@ -366,7 +364,7 @@ fun ColumnScope.WarehouseSummaryScreen() {
                             Spacer(Modifier.width(3.dp))
 
                             Text(
-                                formatLocalized(r.warehouseRealFundsAfter, Locale.getDefault()),
+                                formatLocalized(r.warehouseRealFundsAfter.toDouble(), Locale.getDefault()),
                                 textAlign = TextAlign.Center,
                                 color = statusColor
                             )

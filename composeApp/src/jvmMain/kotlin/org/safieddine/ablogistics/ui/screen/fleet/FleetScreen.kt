@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButton
 import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
 import org.safieddine.ablogistics.ui.theme.ABLogisticsSubtleButton
@@ -31,11 +30,14 @@ import io.github.composefluent.icons.regular.History
 import io.github.composefluent.surface.Card
 import org.safieddine.ablogistics.data.BRVDTO
 import org.safieddine.ablogistics.data.ReceiptResponse
-import org.safieddine.ablogistics.ui.screen.adminScreen.HeaderWithAction
 import org.safieddine.ablogistics.ui.theme.DeleteDialog
 import io.github.composefluent.icons.regular.Edit
 import io.github.composefluent.icons.regular.Delete
 import io.github.composefluent.icons.regular.Add
+import io.github.composefluent.icons.regular.CheckmarkCircle
+import org.safieddine.ablogistics.ui.screen.receipts.DeliveryFinalizationDialog
+import org.safieddine.ablogistics.data.EntityType
+import org.safieddine.ablogistics.data.ReceiptType
 
 
 @Composable
@@ -52,6 +54,8 @@ fun FleetScreen(
     var brvToEdit by remember { mutableStateOf<BRVDTO?>(null) }
     var brvToDelete by remember { mutableStateOf<BRVDTO?>(null) }
     var showHistoryDialog by remember { mutableStateOf(false) }
+    var brvToFinalize by remember { mutableStateOf<BRVDTO?>(null) }
+    var receiptToFinalize by remember { mutableStateOf<ReceiptResponse?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.loadFleetStatus()
@@ -125,7 +129,12 @@ fun FleetScreen(
                         showHistoryDialog = true
                     },
                     onEdit = { brvToEdit = it },
-                    onDelete = { brvToDelete = it }
+                    onDelete = { brvToDelete = it },
+                    onFinalize = { 
+                        selectedBrv = it
+                        viewModel.loadBRVHistory(it.id)
+                        showHistoryDialog = true // The user will finalize from history
+                    }
                 )
             }
 
@@ -202,8 +211,24 @@ fun FleetScreen(
             primaryButtonText = "OK",
             closeButtonText = "Close",
             content = {
-                BRVHistoryList(history)
+                BRVHistoryList(history, onFinalize = { 
+                    receiptToFinalize = it
+                })
             }
+        )
+    }
+
+    if (receiptToFinalize != null) {
+        DeliveryFinalizationDialog(
+            receipt = receiptToFinalize!!,
+            onDismiss = { receiptToFinalize = null },
+            onConfirm = { qty ->
+                viewModel.finalizeDelivery(receiptToFinalize!!.id, qty) {
+                    receiptToFinalize = null
+                    showHistoryDialog = false
+                }
+            },
+            isLoading = isLoading
         )
     }
 }
@@ -214,7 +239,8 @@ fun FleetTable(
     isLoading: Boolean,
     onViewHistory: (BRVDTO) -> Unit,
     onEdit: (BRVDTO) -> Unit,
-    onDelete: (BRVDTO) -> Unit
+    onDelete: (BRVDTO) -> Unit,
+    onFinalize: (BRVDTO) -> Unit
 ) {
     LazyColumn(Modifier.fillMaxSize()) {
         stickyHeader {
@@ -259,6 +285,11 @@ fun FleetTable(
                     IconButton(onClick = { onViewHistory(brv) }) {
                         Icon(imageVector = Icons.Regular.History, contentDescription = "History", tint = FluentTheme.colors.fillAccent.default)
                     }
+                    if (brv.status == "LOADED") {
+                        IconButton(onClick = { onFinalize(brv) }) {
+                            Icon(imageVector = Icons.Regular.CheckmarkCircle, contentDescription = "Finalize", tint = FluentTheme.colors.system.success)
+                        }
+                    }
                 }
             }
             Box(Modifier.fillMaxWidth().height(0.5.dp).background(FluentTheme.colors.background.mica.base.copy(alpha = 0.15f)))
@@ -296,7 +327,7 @@ fun StatusBadge(status: String, modifier: Modifier = Modifier) {
 fun AddBRVDialog(
     existingBrv: BRVDTO? = null,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, String, String, Double) -> Unit
+    onConfirm: (String, String, String, String, java.math.BigDecimal) -> Unit
 ) {
     var plate by remember { mutableStateOf(existingBrv?.plateNumber ?: "") }
     var driver by remember { mutableStateOf(existingBrv?.driverName ?: "") }
@@ -322,7 +353,7 @@ fun AddBRVDialog(
         vendorError = if (vendor.isBlank()) "Vendor is required" else null
         capacityError = when {
             capacity.isBlank() -> "Capacity is required"
-            capacity.toDoubleOrNull() == null || capacity.toDouble() <= 0 -> "Enter a valid capacity > 0"
+            capacity.toBigDecimalOrNull() == null || capacity.toBigDecimal() <= java.math.BigDecimal.ZERO -> "Enter a valid capacity > 0"
             else -> null
         }
         return listOf(plateError, driverError, phoneError, vendorError, capacityError).all { it == null }
@@ -333,7 +364,7 @@ fun AddBRVDialog(
         visible = true,
         onButtonClick = {
             if (it == ContentDialogButton.Primary) {
-                if (validate()) onConfirm(plate, driver, phone, vendor, capacity.toDoubleOrNull() ?: 0.0)
+                if (validate()) onConfirm(plate, driver, phone, vendor, capacity.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO)
             } else {
                 onDismiss()
             }
@@ -394,7 +425,7 @@ fun AddBRVDialog(
 }
 
 @Composable
-fun BRVHistoryList(history: List<ReceiptResponse>) {
+fun BRVHistoryList(history: List<ReceiptResponse>, onFinalize: (ReceiptResponse) -> Unit) {
     if (history.isEmpty()) {
         Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
             Text("No history available for this tanker.")
@@ -413,6 +444,16 @@ fun BRVHistoryList(history: List<ReceiptResponse>) {
                         }
                         Text("Amount: ${receipt.amount} L")
                         Text("Description: ${receipt.description ?: "N/A"}", style = FluentTheme.typography.body, color = FluentTheme.colors.text.accent.secondary)
+                        
+                        if (receipt.entityType == EntityType.CUSTOMER && receipt.receiptType == ReceiptType.OUTWARD && receipt.dispatchedQuantity == null) {
+                            Spacer(Modifier.height(8.dp))
+                            ABLogisticsAccentButton(
+                                onClick = { onFinalize(receipt) },
+                                modifier = Modifier.height(32.dp)
+                            ) {
+                                Text("Finalize Delivery", fontSize = 12.sp)
+                            }
+                        }
                     }
                 }
             }

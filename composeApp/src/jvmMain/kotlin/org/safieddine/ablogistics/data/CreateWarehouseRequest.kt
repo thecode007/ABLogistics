@@ -6,7 +6,8 @@ import kotlinx.serialization.Serializable
 data class CreateWarehouseRequest(
     val name: String,
     val location: String,
-    val totalFunds: Double,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalFunds: java.math.BigDecimal,
     val isoCode: String
 )
 

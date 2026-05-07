@@ -114,13 +114,37 @@ object BRVService {
     suspend fun processLoad(req: ProcessLoadRequest): Result<BaseResponse<List<ReceiptResponse>>> =
         withContext(Dispatchers.IO) {
             try {
-                val res: BaseResponse<List<ReceiptResponse>> = client.post("/api/v1/logistics/process-load") {
+                val res: BaseResponse<List<ReceiptResponse>> = client.post("/api/v1/logistics/load") {
                     setBody(req)
                 }.body()
                 if (res.success) Result.success(res)
                 else Result.failure(Exception(res.message))
             } catch (e: Exception) {
                 Result.failure(Exception("Failed to process load: ${e.message}"))
+            }
+        }
+
+    suspend fun finalizeDelivery(req: FinalizeDeliveryRequest): Result<BaseResponse<ReceiptResponse>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val res: BaseResponse<ReceiptResponse> = client.post("/api/v1/logistics/finalize") {
+                    setBody(req)
+                }.body()
+                if (res.success) Result.success(res)
+                else Result.failure(Exception(res.message))
+            } catch (e: Exception) {
+                Result.failure(Exception("Failed to finalize delivery: ${e.message}"))
+            }
+        }
+
+    suspend fun getProfitAnalysis(): Result<BaseResponse<List<ProfitAnalysisResponse>>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val res: BaseResponse<List<ProfitAnalysisResponse>> = client.get("/api/v1/logistics/profit-analysis").body()
+                if (res.success) Result.success(res)
+                else Result.failure(Exception(res.message))
+            } catch (e: Exception) {
+                Result.failure(Exception("Failed to get profit analysis: ${e.message}"))
             }
         }
 }

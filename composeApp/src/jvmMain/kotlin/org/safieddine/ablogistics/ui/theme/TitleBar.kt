@@ -161,7 +161,7 @@ fun FrameWindowScope.TitleBar(
                         )
                         val locale = Locale.getDefault()
                         val totalFmt = formatLocalized(
-                            parseLocalizedNumber("%.2f".format(totalFunds), locale), locale
+                            parseLocalizedNumber("%.2f".format(totalFunds.toDouble()), locale), locale
                         )
                         Spacer(Modifier.width(6.dp))
                         Box(

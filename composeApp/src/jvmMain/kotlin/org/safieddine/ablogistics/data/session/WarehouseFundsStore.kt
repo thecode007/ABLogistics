@@ -5,27 +5,29 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.safieddine.ablogistics.data.service.WarehouseService
 
-object WarehouseFundsStore {
-    private val _totalFunds = MutableStateFlow(0.0)
-    val totalFunds: StateFlow<Double> = _totalFunds.asStateFlow()
+import java.math.BigDecimal
 
-    private val _realFunds = MutableStateFlow(0.0)
-    val realFunds: StateFlow<Double> = _realFunds.asStateFlow()
+object WarehouseFundsStore {
+    private val _totalFunds = MutableStateFlow(BigDecimal.ZERO)
+    val totalFunds: StateFlow<BigDecimal> = _totalFunds.asStateFlow()
+
+    private val _realFunds = MutableStateFlow(BigDecimal.ZERO)
+    val realFunds: StateFlow<BigDecimal> = _realFunds.asStateFlow()
 
     suspend fun refresh(warehouseId: Long) {
         val res = WarehouseService.getWarehouseFunds(warehouseId)
         if (res.isSuccess) {
             val dto = res.getOrNull()?.data
-            _totalFunds.value = dto?.totalFunds ?: 0.0
-            _realFunds.value = dto?.realFunds ?: 0.0
+            _totalFunds.value = dto?.totalFunds ?: BigDecimal.ZERO
+            _realFunds.value = dto?.realFunds ?: BigDecimal.ZERO
         }
     }
 
-    fun setReal(value: Double?) {
+    fun setReal(value: BigDecimal?) {
         if (value != null) _realFunds.value = value
     }
 
-    fun setTotal(value: Double?) {
+    fun setTotal(value: BigDecimal?) {
         if (value != null) _totalFunds.value = value
     }
 }

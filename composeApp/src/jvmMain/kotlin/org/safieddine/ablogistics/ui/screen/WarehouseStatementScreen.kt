@@ -40,8 +40,8 @@ fun WarehouseStatementScreen(
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var receipts by remember { mutableStateOf<List<ReceiptResponse>>(emptyList()) }
-    var startBalance by remember { mutableStateOf<Double?>(null) }
-    var endBalance by remember { mutableStateOf<Double?>(null) }
+    var startBalance by remember { mutableStateOf<java.math.BigDecimal?>(null) }
+    var endBalance by remember { mutableStateOf<java.math.BigDecimal?>(null) }
     var wh: WarehouseDTO? by remember { mutableStateOf(null) }
     val formatter = remember { DateTimeFormatter.ofPattern("dd-MM-yy") }
 
@@ -174,16 +174,16 @@ fun WarehouseStatementScreen(
                         val dateStr = r.createdAt?.split("T")[0] ?:""
 
                         // For warehouse statement: Debit = INWARD, Credit = OUTWARD (or return adjustments)
-                        val debit = if (r.receiptType == ReceiptType.INWARD && !r.isReturnAdjustment) r.amount else 0.0
-                        val credit = if (r.receiptType == ReceiptType.OUTWARD || r.isReturnAdjustment) r.amount else 0.0
+                        val debit = if (r.receiptType == ReceiptType.INWARD && !r.isReturnAdjustment) r.amount else java.math.BigDecimal.ZERO
+                        val credit = if (r.receiptType == ReceiptType.OUTWARD || r.isReturnAdjustment) r.amount else java.math.BigDecimal.ZERO
 
                         TableRow(
                             cells = listOf(
                                 dateStr,
-                                r.receiptId,
+                                r.receiptId ?: "",
                                 r.description ?: "",
-                                if (debit > 0) formatLocalized(debit) else "",
-                                if (credit > 0) formatLocalized(credit) else "",
+                                if (debit > java.math.BigDecimal.ZERO) formatLocalized(debit) else "",
+                                if (credit > java.math.BigDecimal.ZERO) formatLocalized(credit) else "",
                                 formatLocalized(r.afterImpactFunds)
                             ),
                             weights = listOf(0.9f, 1.4f, 3.8f, 1.6f, 1.6f, 2.2f),

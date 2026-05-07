@@ -40,8 +40,8 @@ fun StateOfAccountScreen(
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var receipts by remember { mutableStateOf<List<ReceiptResponse>>(emptyList()) }
-    var startBalance by remember { mutableStateOf<Int?>(null) }
-    var endBalance by remember { mutableStateOf<Int?>(null) }
+    var startBalance by remember { mutableStateOf<java.math.BigDecimal?>(null) }
+    var endBalance by remember { mutableStateOf<java.math.BigDecimal?>(null) }
     var fromStr by remember { mutableStateOf("") }
     var endStr by remember { mutableStateOf("") }
 
@@ -89,8 +89,8 @@ fun StateOfAccountScreen(
                 }
                 val desc = asc.asReversed()
                 receipts = desc
-                startBalance = desc.firstOrNull()?.beforeImpactFunds?.toInt()
-                endBalance = desc.lastOrNull()?.afterImpactFunds?.toInt()
+                startBalance = desc.firstOrNull()?.beforeImpactFunds
+                endBalance = desc.lastOrNull()?.afterImpactFunds
 
                 if ((start == null || end == null) && receipts.isNotEmpty() ){
                     val fromStr = receipts.firstOrNull()?.createdAt?.split("T")[0]
@@ -196,15 +196,15 @@ fun StateOfAccountScreen(
                     val dateStr = r.createdAt?.split("T")[0] ?:""
 
                     val label = r.description ?: ""
-                    val credit = if (r.receiptType == ReceiptType.OUTWARD && !r.isReturnAdjustment) r.amount else 0.0
-                    val debit  = if (r.receiptType == ReceiptType.INWARD || r.isReturnAdjustment) r.amount else 0.0
+                    val credit: java.math.BigDecimal = if (r.receiptType == ReceiptType.OUTWARD && !r.isReturnAdjustment) r.amount else java.math.BigDecimal.ZERO
+                    val debit: java.math.BigDecimal  = if (r.receiptType == ReceiptType.INWARD || r.isReturnAdjustment) r.amount else java.math.BigDecimal.ZERO
                     TableRow(
                         cells = listOf(
                             dateStr,
-                            r.receiptId,
+                            r.receiptId ?: "",
                             label,
-                            if (debit > 0) formatLocalized(debit) else "",
-                            if (credit > 0) formatLocalized(credit) else "",
+                            if (debit > java.math.BigDecimal.ZERO) formatLocalized(debit) else "",
+                            if (credit > java.math.BigDecimal.ZERO) formatLocalized(credit) else "",
                             formatLocalized(r.afterImpactFunds)
                         ),
                         weights = listOf(0.9f, 1.4f, 3.8f, 1.6f, 1.6f, 2.2f),
@@ -231,9 +231,9 @@ fun StateOfAccountScreen(
                         OffsetDateTime.ofInstant(java.time.Instant.ofEpochMilli(it), java.time.ZoneOffset.UTC)
                             .format(DateTimeFormatter.ofPattern("dd-MM-yy"))
                     } ?: OffsetDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yy"))
-                    val footerAmount = endBalance ?: 0.0
+                    val footerAmount = endBalance ?: java.math.BigDecimal.ZERO
                     Text(
-                        text = "On $footerDate, You Owe Us The Amount Of FCFA ${formatLocalized(footerAmount.toInt())}.",
+                        text = "On $footerDate, You Owe Us The Amount Of FCFA ${formatLocalized(footerAmount)}.",
                         modifier = Modifier.padding(10.dp),
                         style = FluentTheme.typography.body.copy(fontWeight = FontWeight.Bold)
                     )

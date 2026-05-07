@@ -1,6 +1,7 @@
 package org.safieddine.ablogistics.data
 
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
 
 @Serializable
 data class BRVDTO(
@@ -9,7 +10,8 @@ data class BRVDTO(
     val driverName: String?,
     val driverPhone: String? = null,
     val vendor: String?,
-    val capacity: Double,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val capacity: BigDecimal,
     val status: String
 )
 
@@ -21,10 +23,14 @@ data class FleetStatusResponse(
 @Serializable
 data class ProfitAnalysisResponse(
     val brvPlateNumber: String,
-    val totalProfit: Double,
-    val totalExpectedRevenue: Double,
-    val totalSupplierDebt: Double,
-    val totalQuantityLoaded: Double
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalProfit: BigDecimal,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalShortagePenalty: BigDecimal,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalQuantityLoaded: BigDecimal,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalQuantityDispatched: BigDecimal
 )
 
 @Serializable
@@ -33,8 +39,20 @@ data class ProcessLoadRequest(
     val supplierId: Long,
     val customerId: Long,
     val warehouseId: Long,
-    val quantity: Double,
-    val costPrice: Double,
-    val sellingPrice: Double,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val loadedQuantity: BigDecimal,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val costPrice: BigDecimal,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val sellingPrice: BigDecimal,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val brvCost: BigDecimal,
     val description: String? = null
+)
+
+@Serializable
+data class FinalizeDeliveryRequest(
+    val customerReceiptId: Long,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val dispatchedQuantity: BigDecimal
 )

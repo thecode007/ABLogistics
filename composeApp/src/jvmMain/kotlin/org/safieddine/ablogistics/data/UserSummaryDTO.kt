@@ -16,8 +16,10 @@ data class WarehouseDTO(
     val name: String,
     val location: String? = null,
     val isoCode: String = "",
-    val totalFunds: Double? = null,
-    val realFunds: Double? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalFunds: java.math.BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val realFunds: java.math.BigDecimal? = null,
     val createdAt: String? = null,
     val users: List<UserSummaryDTO> = emptyList(),
     val customersCount: Int,

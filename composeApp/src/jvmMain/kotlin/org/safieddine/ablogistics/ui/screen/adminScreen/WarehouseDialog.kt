@@ -84,7 +84,7 @@ fun WarehouseDialog(
                                 name = safeName,
                                 location = safeLocation,
                                 isoCode = selectedCountry?.code ?: "LB",
-                                totalFunds = existingWarehouse?.totalFunds ?: 0.0,
+                                totalFunds = existingWarehouse?.totalFunds ?: java.math.BigDecimal.ZERO,
                                 createdAt = existingWarehouse?.createdAt,
                                 users = existingWarehouse?.users ?: emptyList(),
                                 customersCount = existingWarehouse?.customersCount ?: 0,

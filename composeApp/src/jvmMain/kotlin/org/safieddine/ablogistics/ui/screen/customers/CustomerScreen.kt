@@ -52,7 +52,7 @@ fun ColumnScope.  CustomerScreen() {
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var customers by remember { mutableStateOf<List<CustomerResponse>>(emptyList()) }
-    var totalFunds by remember { mutableStateOf(0.0) }
+    var totalFunds by remember { mutableStateOf(java.math.BigDecimal.ZERO) }
 
     var query by remember { mutableStateOf("") }
 
@@ -77,7 +77,7 @@ fun ColumnScope.  CustomerScreen() {
             val res = CustomerService.list(warehouseId = SessionStore.selectedWarehouse.value?.id ?: 0L)
             if (res.isSuccess) {
                 customers = res.getOrNull()?.data?.customers ?: emptyList()
-                totalFunds = res.getOrNull()?.data?.totalFundsSum ?: 0.0
+                totalFunds = res.getOrNull()?.data?.totalFundsSum ?: java.math.BigDecimal.ZERO
             } else {
                 error = res.exceptionOrNull()?.message
             }
@@ -339,7 +339,7 @@ fun ColumnScope.  CustomerScreen() {
                                         name = name,
                                         phoneNumber = phone,
                                         location = location,
-                                        totalFunds = 0.0,
+                                        totalFunds = java.math.BigDecimal.ZERO,
                                         warehouseId = whId
                                     )
                                 )

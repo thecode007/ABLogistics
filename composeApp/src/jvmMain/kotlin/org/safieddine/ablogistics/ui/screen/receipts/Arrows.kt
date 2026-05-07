@@ -28,17 +28,19 @@ import java.util.Locale
 
 fun formatLocalized(value: Double, locale: Locale = Locale.getDefault()): String {
     val symbols = DecimalFormatSymbols(locale)
-    val df = DecimalFormat("#,##0", symbols)
+    val df = DecimalFormat("#,##0.00", symbols) // Added .00 for financial consistency
+    return df.format(value)
+}
 
-
+fun formatLocalized(value: java.math.BigDecimal, locale: Locale = Locale.getDefault()): String {
+    val symbols = DecimalFormatSymbols(locale)
+    val df = DecimalFormat("#,##0.00", symbols)
     return df.format(value)
 }
 
 fun formatLocalized(value: Int, locale: Locale = Locale.getDefault()): String {
     val symbols = DecimalFormatSymbols(locale)
     val df = DecimalFormat("#,##0", symbols)
-
-
     return df.format(value)
 }
 
@@ -48,9 +50,17 @@ fun formatLocalized(value: Int, locale: Locale = Locale.getDefault()): String {
 fun parseLocalizedNumber(amount: String, locale: Locale = Locale.getDefault()): Double {
     val nf = NumberFormat.getInstance(locale)
     return try {
-        nf.parse(amount)?.toDouble() ?: 0.0
+        nf.parse(amount.replace(",", ""))?.toDouble() ?: 0.0
     } catch (_: Exception) {
         0.0
+    }
+}
+
+fun parseLocalizedBigDecimal(amount: String, locale: Locale = Locale.getDefault()): java.math.BigDecimal {
+    return try {
+        java.math.BigDecimal(amount.replace(",", ""))
+    } catch (_: Exception) {
+        java.math.BigDecimal.ZERO
     }
 }
 

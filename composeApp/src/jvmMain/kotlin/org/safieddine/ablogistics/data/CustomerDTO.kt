@@ -7,7 +7,8 @@ data class UpdateCustomerRequest(
     val name: String,
     val location: String,
     val phoneNumber: String,
-    val totalFunds: Double = 0.0,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalFunds: java.math.BigDecimal = java.math.BigDecimal.ZERO,
     val warehouseId: Long? = null
 )
 
@@ -16,7 +17,8 @@ data class CreateCustomerRequest(
     val name: String,
     val phoneNumber: String,
     val location: String,
-    val totalFunds: Double = 0.0,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalFunds: java.math.BigDecimal = java.math.BigDecimal.ZERO,
     val warehouseId: Long
 )
 
@@ -26,7 +28,8 @@ data class CustomerResponse(
     val phoneNumber: String,
     val name: String,
     val location: String,
-    val totalFunds: Double,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalFunds: java.math.BigDecimal,
     val warehouseId: Long,
     val warehouseName: String
 )
@@ -34,5 +37,6 @@ data class CustomerResponse(
 @Serializable
 data class CustomersListResponse(
     val customers: List<CustomerResponse> = emptyList(),
-    val totalFundsSum: Double = 0.0
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalFundsSum: java.math.BigDecimal = java.math.BigDecimal.ZERO
 )

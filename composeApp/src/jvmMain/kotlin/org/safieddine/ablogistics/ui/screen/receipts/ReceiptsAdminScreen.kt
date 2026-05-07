@@ -424,7 +424,7 @@ fun ReceiptsAdminScreen() {
                                     .padding(vertical = 4.dp, horizontal = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(r.receiptId, Modifier.weight(1f), textAlign = TextAlign.Center)
+                                Text(r.receiptId ?: "", Modifier.weight(1f), textAlign = TextAlign.Center)
                                 Row(Modifier.weight(0.8f), horizontalArrangement = Arrangement.Center) {
                                     Icon(imageVector = icon, contentDescription = "", tint = statusColor)
                                     Spacer(Modifier.width(4.dp))
@@ -432,9 +432,7 @@ fun ReceiptsAdminScreen() {
                                 }
 
                                 val realFunds = r.amount
-
-                                val numericValueF = parseLocalizedNumber("%.2f".format(realFunds), Locale.getDefault())
-                                val formattedValue = formatLocalized(numericValueF, Locale.getDefault())
+                                val formattedValue = formatLocalized(realFunds, Locale.getDefault())
 
                                 Text(formattedValue, Modifier.weight(1f), textAlign = TextAlign.Center)
                                 Text(r.description ?: "", Modifier.weight(1.6f), textAlign = TextAlign.Center)
@@ -584,7 +582,7 @@ fun ReceiptsAdminScreen() {
         }
         val valid =
             receiptId.isNotBlank() &&
-                    (amount.toDoubleOrNull()?.let { it > 0 } == true)
+                    (amount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } == true)
                     && (if (useCustomDate) customDateMillis != null else true)
                     && selectedWarehouse != null
 
@@ -605,7 +603,7 @@ fun ReceiptsAdminScreen() {
                             receiptType = if (rtIndex == 0) ReceiptType.INWARD else ReceiptType.OUTWARD,
                             entityType = EntityType.WAREHOUSE,
                             warehouseId = selectedWarehouse!!.id,
-                            amount = amount.toDoubleOrNull() ?: 0.0,
+                            amount = amount.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO,
                             description = description.ifBlank { null },
                             createdAtMillis = if (useCustomDate) customDateMillis else null
                         )
@@ -676,7 +674,7 @@ fun ReceiptsAdminScreen() {
                                 .replace(Regex("\\.(?=.*\\.)"), "")
                         },
                         header = { Text("Amount") },
-                        isError = touched && (amount.toDoubleOrNull()?.let { it > 0 } != true),
+                        isError = touched && (amount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } != true),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth())
                     Spacer(Modifier.height(8.dp))
@@ -705,7 +703,7 @@ fun ReceiptsAdminScreen() {
         var amount by remember(editing) {
             // Avoid scientific notation when prefilling amount; keep a plain string
             val plain =
-                editing?.amount?.let { java.math.BigDecimal.valueOf(it).stripTrailingZeros().toPlainString() } ?: ""
+                editing?.amount?.stripTrailingZeros()?.toPlainString() ?: ""
             mutableStateOf(plain)
         }
         var description by remember(editing) { mutableStateOf(editing?.description ?: "") }
@@ -722,7 +720,7 @@ fun ReceiptsAdminScreen() {
                 }
             )
         }
-        val valid = receiptId.isNotBlank() && (amount.toDoubleOrNull()?.let { it > 0 } == true)
+        val valid = receiptId.isNotBlank() && (amount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } == true)
         val updatedStr = stringResource(Res.string.receipt_updated)
 
         ContentDialog(
@@ -740,7 +738,7 @@ fun ReceiptsAdminScreen() {
                             receiptId = receiptId.trim(),
                             receiptType = if (rtIndex == 0) ReceiptType.INWARD else ReceiptType.OUTWARD,
                             entityType = EntityType.WAREHOUSE,
-                            amount = amount.toDoubleOrNull() ?: 0.0,
+                            amount = amount.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO,
                             description = description.ifBlank { null },
                             createdAtMillis = customDateMillis
                         )
@@ -803,7 +801,7 @@ fun ReceiptsAdminScreen() {
                                 .replace(Regex("\\.(?=.*\\.)"), "")
                         },
                         header = { Text(stringResource(Res.string.amount)) },
-                        isError = touched && (amount.toDoubleOrNull()?.let { it > 0 } != true),
+                        isError = touched && (amount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } != true),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )

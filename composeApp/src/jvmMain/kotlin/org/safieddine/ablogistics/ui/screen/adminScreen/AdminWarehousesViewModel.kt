@@ -54,7 +54,7 @@ class AdminWarehousesViewModel(
         }
     }
 
-    fun createWarehouse(name: String, location: String, totalFunds: Double, isoCode: String) {
+    fun createWarehouse(name: String, location: String, totalFunds: java.math.BigDecimal, isoCode: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _warehousesLoading.value = true
             val result = warehouseService.createWarehouse(

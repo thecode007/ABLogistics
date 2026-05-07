@@ -12,8 +12,10 @@ data class WarehouseUpdateRequest(
 @Serializable
 data class WarehouseReceiptsSummary(
     val receipts: List<ReceiptResponse>,
-    val totalInbound: Double,
-    val totalOutbound: Double,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalInbound: java.math.BigDecimal,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalOutbound: java.math.BigDecimal,
     val page: Int,
     val size: Int,
     val totalElements: Long,
@@ -23,10 +25,12 @@ data class WarehouseReceiptsSummary(
 @Serializable
 data class WarehouseReceiptsSummaryDetailed(
     val receipts: List<ReceiptResponse>,
-    val totalInbound: Double,
-    val totalOutbound: Double,
-    val inboundByEntityType: Map<String, Double> = emptyMap(),
-    val outboundByEntityType: Map<String, Double> = emptyMap(),
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalInbound: java.math.BigDecimal,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalOutbound: java.math.BigDecimal,
+    val inboundByEntityType: Map<String, @Serializable(with = BigDecimalAsStringSerializer::class) java.math.BigDecimal> = emptyMap(),
+    val outboundByEntityType: Map<String, @Serializable(with = BigDecimalAsStringSerializer::class) java.math.BigDecimal> = emptyMap(),
     val page: Int,
     val size: Int,
     val totalElements: Long,
@@ -35,6 +39,8 @@ data class WarehouseReceiptsSummaryDetailed(
 
 @Serializable
 data class WarehouseFundsDTO(
-    val totalFunds: Double = 0.0,
-    val realFunds: Double = 0.0
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalFunds: java.math.BigDecimal = java.math.BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val realFunds: java.math.BigDecimal = java.math.BigDecimal.ZERO
 )

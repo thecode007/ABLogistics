@@ -4,33 +4,23 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.github.composefluent.FluentTheme
-import io.github.composefluent.component.NavigationDefaults
-import io.github.composefluent.component.NavigationItemColor
 import io.github.composefluent.component.SideNav
 import io.github.composefluent.component.SideNavItem
 import io.github.composefluent.icons.Icons
-import io.github.composefluent.icons.filled.BuildingBank
 import io.github.composefluent.icons.filled.PeopleCommunity
 import io.github.composefluent.icons.filled.PeopleMoney
 import org.jetbrains.compose.resources.stringResource
-import org.safieddine.ablogistics.data.session.SessionStore
 import org.safieddine.ablogistics.ui.screen.RailScreen
 import org.safieddine.ablogistics.ui.screen.customers.CustomerScreen
-import org.safieddine.ablogistics.ui.screen.receipts.ReceiptsCustomerScreen
-import org.safieddine.ablogistics.ui.screen.receipts.ReceiptsAdminScreen
-import org.safieddine.ablogistics.ui.screen.receipts.WarehouseSummaryScreen
 import org.safieddine.ablogistics.ui.screen.DistributorScreen
 import org.safieddine.ablogistics.ui.screen.SettingsScreen
 import org.safieddine.ablogistics.ui.screen.fleet.FleetScreen
+import org.safieddine.ablogistics.ui.screen.receipts.DirectLoadEntryScreen
 import ablogistics.composeapp.generated.resources.*
-import io.github.composefluent.component.rememberIndicatorState
 import io.github.composefluent.icons.filled.VehicleTruckProfile
 import io.github.composefluent.icons.regular.*
 
@@ -54,6 +44,7 @@ sealed class AppScreen(val title: String) {
     object Distributors : AppScreen("Distributors")
     object Settings : AppScreen("Settings")
     object Fleet : AppScreen("Fleet Tracking")
+    object DirectLoad : AppScreen("Direct Load")
 }
 
 @Composable
@@ -62,13 +53,18 @@ fun TeamsNavigationRail(
     val navigationItems = listOf(
         NavigationItem(
             "Dashboard",
-            io.github.composefluent.icons.Icons.Default.Apps,
+            Icons.Default.Apps,
             AppScreen.Dashboard
         ),
         NavigationItem(
             "Fleet",
             Icons.Filled.VehicleTruckProfile,
             AppScreen.Fleet
+        ),
+        NavigationItem(
+            "Direct Load",
+            Icons.Regular.Add,
+            AppScreen.DirectLoad
         ),
         NavigationItem(
             stringResource(Res.string.nav_customers),
@@ -132,6 +128,9 @@ fun TeamsNavigationRail(
                 }
                 is AppScreen.Fleet -> {
                     FleetScreen()
+                }
+                is AppScreen.DirectLoad -> {
+                    DirectLoadEntryScreen()
                 }
                 else -> {}
             }

@@ -120,6 +120,25 @@ class FleetViewModel(
         }
     }
 
+    fun finalizeDelivery(customerReceiptId: Long, dispatchedQuantity: java.math.BigDecimal, onSuccess: () -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _isLoading.value = true
+            try {
+                val result = brvService.finalizeDelivery(org.safieddine.ablogistics.data.FinalizeDeliveryRequest(customerReceiptId, dispatchedQuantity))
+                if (result.isSuccess) {
+                    loadFleetStatus()
+                    onSuccess()
+                } else {
+                    _error.value = result.exceptionOrNull()?.message ?: "Failed to finalize delivery"
+                }
+            } catch (e: Exception) {
+                _error.value = e.message
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
     fun clearError() {
         _error.value = null
     }

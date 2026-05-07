@@ -63,8 +63,8 @@ fun ReceiptsCustomerScreen() {
     var clearDatesKey by remember { mutableStateOf(System.currentTimeMillis()) }
 
     // Totals
-    var totalInbound by remember { mutableStateOf(0.0) }
-    var totalOutbound by remember { mutableStateOf(0.0) }
+    var totalInbound by remember { mutableStateOf(java.math.BigDecimal.ZERO) }
+    var totalOutbound by remember { mutableStateOf(java.math.BigDecimal.ZERO) }
 
     // Pagination + filters
     var search by remember { mutableStateOf("") }
@@ -403,14 +403,13 @@ fun ReceiptsCustomerScreen() {
                                     .padding(horizontal = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(r.receiptId, Modifier.weight(1f), textAlign = TextAlign.Center)
+                                Text(r.receiptId ?: "", Modifier.weight(1f), textAlign = TextAlign.Center)
                                 Row(Modifier.weight(0.8f), horizontalArrangement = Arrangement.Center) {
                                     Icon(icon, contentDescription = "", tint = statusColor)
                                     Spacer(Modifier.width(4.dp))
                                     Text(r.receiptType.name, color = statusColor)
                                 }
-                                val numericValueF = parseLocalizedNumber("%.2f".format(r.amount), Locale.getDefault())
-                                val formattedValue = formatLocalized(numericValueF, Locale.getDefault())
+                                val formattedValue = formatLocalized(r.amount, Locale.getDefault())
                                 Text(formattedValue, Modifier.weight(1f), textAlign = TextAlign.Center)
                                 Text(r.description ?: "", Modifier.weight(1.6f), textAlign = TextAlign.Center)
                                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center) {
@@ -520,13 +519,13 @@ fun ReceiptsCustomerScreen() {
             if (toReturn != null) {
                 val r = toReturn!!
                 var returnAmount by remember(toReturn) {
-                    mutableStateOf("".ifBlank { "%.2f".format(r.amount) })
+                    mutableStateOf(r.amount.toPlainString())
                 }
                 var touched by remember(toReturn) { mutableStateOf(false) }
                 var isReturning by remember(toReturn) { mutableStateOf(false) }
                 val maxAmount = r.amount
-                val parsed = returnAmount.toDoubleOrNull() ?: -1.0
-                val validReturn = parsed > 0.0 && parsed <= maxAmount
+                val parsed = returnAmount.toBigDecimalOrNull() ?: java.math.BigDecimal("-1.0")
+                val validReturn = parsed > java.math.BigDecimal.ZERO && parsed <= maxAmount
                 val infoStr = stringResource(Res.string.receipt_marked_returned)
 
                 ContentDialog(
@@ -569,7 +568,7 @@ fun ReceiptsCustomerScreen() {
                     },
                     content = {
                         Column(Modifier.fillMaxWidth()) {
-                            Text("Max: %.2f".format(maxAmount))
+                            Text("Max: ${maxAmount.toPlainString()}")
                             Spacer(Modifier.height(8.dp))
                             ABLogisticsTextField(
                                 value = returnAmount,
@@ -586,7 +585,7 @@ fun ReceiptsCustomerScreen() {
                             if (touched && !validReturn) {
                                 Spacer(Modifier.height(6.dp))
                                 Text(
-                                    text = "Enter a value between 0 and %.2f".format(maxAmount),
+                                    text = "Enter a value between 0 and ${maxAmount.toPlainString()}",
                                     color = FluentTheme.colors.system.critical
                                 )
                             }
@@ -607,8 +606,7 @@ fun ReceiptsCustomerScreen() {
             if (editing != null) {
                 var receiptId by remember(editing) { mutableStateOf(editing?.receiptId ?: "") }
                 var amount by remember(editing) {
-                    val plain = editing?.amount?.let { java.math.BigDecimal.valueOf(it).stripTrailingZeros().toPlainString() } ?: ""
-                    mutableStateOf(plain)
+                    mutableStateOf(editing?.amount?.toPlainString() ?: "")
                 }
                 var description by remember(editing) { mutableStateOf(editing?.description ?: "") }
                 var rtIndex by remember(editing) { mutableStateOf(if (editing?.receiptType == ReceiptType.INWARD) 0 else 1) }
@@ -645,7 +643,7 @@ fun ReceiptsCustomerScreen() {
                                     else
                                         ReceiptType.OUTWARD,
                                     entityType = EntityType.CUSTOMER,
-                                    amount = amount.toDoubleOrNull() ?: 0.0,
+                                    amount = amount.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO,
                                     description = description.ifBlank { null },
                                     customerId = editing?.customerId,
                                     createdAtMillis = customDateMillis
@@ -729,7 +727,7 @@ fun ReceiptsCustomerScreen() {
                 DeleteDialog(
                     showDeleteDialog = true,
                     title = stringResource(Res.string.delete_receipt_title),
-                    message = stringResource(Res.string.delete_receipt_message, r.receiptId)
+                    message = stringResource(Res.string.delete_receipt_message, r.receiptId ?: "N/A")
                 ) { btn ->
                     if (btn == ContentDialogButton.Primary) {
                         scope.launch {
@@ -770,7 +768,7 @@ fun ReceiptsCustomerScreen() {
                 }
                 val valid =
                     receiptId.isNotBlank() &&
-                            (amount.toDoubleOrNull()?.let { it > 0 } == true) &&
+                            (amount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } == true) &&
                             (selectedWarehouse != null && selectedCustomerId != null)
 
                 ContentDialog(
@@ -796,7 +794,7 @@ fun ReceiptsCustomerScreen() {
                                     entityType = EntityType.CUSTOMER,
                                     warehouseId = selectedWarehouse!!.id,
                                     customerId = selectedCustomerId,
-                                    amount = amount.toDoubleOrNull() ?: 0.0,
+                                    amount = amount.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO,
                                     description = description.ifBlank { null },
                                     createdAtMillis = if (useCustomDate) customDateMillis else null
                                 )
