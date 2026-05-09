@@ -335,8 +335,7 @@ fun ColumnScope.WarehouseSummaryScreen() {
                             Spacer(Modifier.width(4.dp))
                             Text(r.receiptType.name, color = statusColor)
                         }
-                        val numericValueF = parseLocalizedNumber("%.2f".format(r.amount), Locale.getDefault())
-                        val formattedValue = formatLocalized(numericValueF, Locale.getDefault())
+                        val formattedValue = formatLocalized(r.amount, Locale.getDefault())
                         Text(formattedValue, Modifier.weight(1f), textAlign = TextAlign.Center)
                         Text(r.description ?: "", Modifier.weight(1.6f), textAlign = TextAlign.Center)
                         Text(formatDate(r.createdAt), Modifier.weight(1.2f), textAlign = TextAlign.Center)
@@ -349,7 +348,7 @@ fun ColumnScope.WarehouseSummaryScreen() {
                         ) {
                             Text(
                                 color = previousColor,
-                                text = formatLocalized(r.warehouseRealFundsBefore.toDouble(), Locale.getDefault()),
+                                text = formatLocalized(r.warehouseRealFundsBefore, Locale.getDefault()),
                                 textAlign = TextAlign.Center
                             )
 
@@ -364,7 +363,7 @@ fun ColumnScope.WarehouseSummaryScreen() {
                             Spacer(Modifier.width(3.dp))
 
                             Text(
-                                formatLocalized(r.warehouseRealFundsAfter.toDouble(), Locale.getDefault()),
+                                formatLocalized(r.warehouseRealFundsAfter, Locale.getDefault()),
                                 textAlign = TextAlign.Center,
                                 color = statusColor
                             )

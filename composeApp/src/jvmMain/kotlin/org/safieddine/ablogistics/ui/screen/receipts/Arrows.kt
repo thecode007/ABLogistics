@@ -34,7 +34,7 @@ fun formatLocalized(value: Double, locale: Locale = Locale.getDefault()): String
 
 fun formatLocalized(value: java.math.BigDecimal, locale: Locale = Locale.getDefault()): String {
     val symbols = DecimalFormatSymbols(locale)
-    val df = DecimalFormat("#,##0.00", symbols)
+    val df = DecimalFormat("#,##0.0000", symbols)
     return df.format(value)
 }
 

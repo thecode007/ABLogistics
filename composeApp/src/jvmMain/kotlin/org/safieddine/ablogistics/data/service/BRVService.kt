@@ -1,5 +1,7 @@
 package org.safieddine.ablogistics.data.service
 
+import io.ktor.client.statement.bodyAsText
+
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpTimeout
@@ -119,6 +121,9 @@ object BRVService {
                 }.body()
                 if (res.success) Result.success(res)
                 else Result.failure(Exception(res.message))
+            } catch (e: io.ktor.client.plugins.ResponseException) {
+                val errorBody = try { e.response.bodyAsText() } catch (_: Exception) { "" }
+                Result.failure(Exception("Server error (${e.response.status.value}): $errorBody"))
             } catch (e: Exception) {
                 Result.failure(Exception("Failed to process load: ${e.message}"))
             }
@@ -132,6 +137,9 @@ object BRVService {
                 }.body()
                 if (res.success) Result.success(res)
                 else Result.failure(Exception(res.message))
+            } catch (e: io.ktor.client.plugins.ResponseException) {
+                val errorBody = try { e.response.bodyAsText() } catch (_: Exception) { "" }
+                Result.failure(Exception("Server error (${e.response.status.value}): $errorBody"))
             } catch (e: Exception) {
                 Result.failure(Exception("Failed to finalize delivery: ${e.message}"))
             }

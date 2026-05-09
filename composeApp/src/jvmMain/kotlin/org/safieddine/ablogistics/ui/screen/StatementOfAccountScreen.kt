@@ -5,8 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -78,7 +78,7 @@ fun StateOfAccountScreen(
             )
             if (res.isSuccess) {
                 val data = res.getOrNull()?.data
-                val list = data?.receipts ?: emptyList()
+                val list = data?.receipts?.filter { it.entityType.name == "CUSTOMER" } ?: emptyList()
                 // Sort receipts chronologically ascending to compute balances, then display descending
                 val asc = list.sortedBy { r ->
                     try {
@@ -114,7 +114,7 @@ fun StateOfAccountScreen(
         Row(
             Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colors.primary)
+                .background(MaterialTheme.colorScheme.primary)
                 .padding(6.dp),
             horizontalArrangement = Arrangement.Center
         ) {

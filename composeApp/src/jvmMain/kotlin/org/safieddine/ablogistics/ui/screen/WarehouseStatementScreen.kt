@@ -5,8 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -71,7 +71,7 @@ fun WarehouseStatementScreen(
             )
             if (res.isSuccess) {
                 val data = res.getOrNull()?.data
-                val list = data?.receipts ?: emptyList()
+                val list = data?.receipts?.filter { it.entityType.name == "WAREHOUSE" } ?: emptyList()
                 // Compute balances from true chronological order; display newest first
                 val asc = list.sortedBy { r ->
                     try {
@@ -103,7 +103,7 @@ fun WarehouseStatementScreen(
         Row(
             Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colors.primary)
+                .background(MaterialTheme.colorScheme.primary)
                 .padding(6.dp),
             horizontalArrangement = Arrangement.Center
         ) {

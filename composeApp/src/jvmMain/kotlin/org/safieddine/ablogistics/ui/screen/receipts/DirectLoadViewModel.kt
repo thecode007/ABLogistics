@@ -32,7 +32,6 @@ class DirectLoadViewModel : ViewModel() {
 
     // Form State
     var selectedCustomer by mutableStateOf<CustomerResponse?>(null)
-    var selectedSupplier by mutableStateOf<SupplierDTO?>(null)
     var selectedBrv by mutableStateOf<BRVDTO?>(null)
     var loadedQuantity by mutableStateOf("")
     var costPrice by mutableStateOf("")
@@ -43,6 +42,12 @@ class DirectLoadViewModel : ViewModel() {
     // Preview state
     var projectedRevenue by mutableStateOf(BigDecimal.ZERO)
     var projectedProfit by mutableStateOf(BigDecimal.ZERO)
+
+    private val _loads = MutableStateFlow<List<ReceiptResponse>>(emptyList())
+    val loads: StateFlow<List<ReceiptResponse>> = _loads
+
+    private val _isFinalizing = MutableStateFlow(false)
+    val isFinalizing: StateFlow<Boolean> = _isFinalizing
 
     fun loadInitialData(warehouseId: Long) {
         viewModelScope.launch {
@@ -56,10 +61,26 @@ class DirectLoadViewModel : ViewModel() {
 
                 val fleetRes = BRVService.getFleetStatus()
                 _brvs.value = fleetRes.getOrNull()?.data?.brvs ?: emptyList()
+
+                fetchLoads(warehouseId)
             } catch (e: Exception) {
                 _error.value = "Failed to load data: ${e.message}"
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    fun fetchLoads(warehouseId: Long) {
+        viewModelScope.launch {
+            val res = ReceiptService.listWarehouseDetailed(
+                warehouseId = warehouseId,
+                type = ReceiptType.OUTWARD,
+                size = 100
+            )
+            if (res.isSuccess) {
+                // Filter for receipts that are associated with a BRV (Load Orders)
+                _loads.value = res.getOrNull()?.data?.receipts?.filter { it.brvId != null } ?: emptyList()
             }
         }
     }
@@ -80,7 +101,6 @@ class DirectLoadViewModel : ViewModel() {
         val sp = sellingPrice.toBigDecimalOrNull() ?: return
         val bc = brvCost.toBigDecimalOrNull() ?: return
         val cust = selectedCustomer ?: return
-        val sup = selectedSupplier ?: return
         val brv = selectedBrv ?: return
 
         viewModelScope.launch {
@@ -90,7 +110,6 @@ class DirectLoadViewModel : ViewModel() {
             
             val req = ProcessLoadRequest(
                 brvId = brv.id,
-                supplierId = sup.id,
                 customerId = cust.id,
                 warehouseId = warehouseId,
                 loadedQuantity = qty,
@@ -104,16 +123,32 @@ class DirectLoadViewModel : ViewModel() {
             if (res.isSuccess) {
                 _success.value = "Load processed successfully! Linked receipts created."
                 clearForm()
+                fetchLoads(warehouseId)
             } else {
                 _error.value = res.exceptionOrNull()?.message ?: "Unknown error"
+                println("ProcessLoad Error: ${_error.value}")
             }
             _isLoading.value = false
         }
     }
 
+    fun finalizeLoad(warehouseId: Long, customerReceiptId: Long, dispatchedQty: BigDecimal) {
+        viewModelScope.launch {
+            _isFinalizing.value = true
+            val req = FinalizeDeliveryRequest(customerReceiptId, dispatchedQty)
+            val res = BRVService.finalizeDelivery(req)
+            if (res.isSuccess) {
+                _success.value = "Delivery finalized successfully."
+                fetchLoads(warehouseId)
+            } else {
+                _error.value = res.exceptionOrNull()?.message ?: "Failed to finalize"
+            }
+            _isFinalizing.value = false
+        }
+    }
+
     private fun clearForm() {
         selectedCustomer = null
-        selectedSupplier = null
         selectedBrv = null
         loadedQuantity = ""
         costPrice = ""

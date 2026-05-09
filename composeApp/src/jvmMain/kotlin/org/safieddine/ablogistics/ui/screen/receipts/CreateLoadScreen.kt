@@ -28,13 +28,10 @@ fun CreateLoadScreen() {
 
     var customers by remember { mutableStateOf<List<CustomerResponse>>(emptyList()) }
     var brvs by remember { mutableStateOf<List<BRVDTO>>(emptyList()) }
-    var warehouses by remember { mutableStateOf<List<WarehouseDTO>>(emptyList()) }
 
     var selectedCustomer by remember { mutableStateOf<CustomerResponse?>(null) }
     var brvIndex by remember { mutableStateOf<Int?>(null) }
     var selectedBrv by remember { mutableStateOf<BRVDTO?>(null) }
-    var supplierIndex by remember { mutableStateOf<Int?>(null) }
-    var selectedSupplier by remember { mutableStateOf<WarehouseDTO?>(null) }
 
     var quantity by remember { mutableStateOf("") }
     var costPrice by remember { mutableStateOf("") }
@@ -61,13 +58,6 @@ fun CreateLoadScreen() {
             val fleetRes = BRVService.getFleetStatus()
             brvs = fleetRes.getOrNull()?.data?.brvs ?: emptyList()
 
-            // Load Warehouses (for Supplier)
-            val whRes = WarehouseService.getAllWarehouses()
-            warehouses = whRes.getOrNull()?.data ?: emptyList()
-            // Default supplier to Admin (ID 1) if available
-            selectedSupplier = warehouses.find { it.id == 1L } ?: warehouses.firstOrNull { it.id != whId }
-            supplierIndex = selectedSupplier?.let { warehouses.indexOf(it).takeIf { idx -> idx >= 0 } }
-
             isLoading = false
         }
     }
@@ -76,9 +66,9 @@ fun CreateLoadScreen() {
         if (error != null) {
             InfoBar(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                title = { Text(error ?: "") },
+                title = { Text("Failed to process load") },
                 severity = InfoBarSeverity.Critical,
-                message = {}
+                message = { Text(error ?: "") }
             )
         }
         if (info != null) {
@@ -116,18 +106,6 @@ fun CreateLoadScreen() {
                     selected = brvIndex,
                     items = brvs.map { "${it.plateNumber} (${it.driverName ?: "No Driver"})" },
                     onSelectionChange = { i, _ -> brvIndex = i; selectedBrv = brvs[i] },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(16.dp))
-
-                // Supplier Selection
-                Text("Supplier (Admin)", style = FluentTheme.typography.bodyStrong)
-                Spacer(Modifier.height(4.dp))
-                ComboBox(
-                    placeholder = "Select Supplier",
-                    selected = supplierIndex,
-                    items = warehouses.map { it.name },
-                    onSelectionChange = { i, _ -> supplierIndex = i; selectedSupplier = warehouses[i] },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(24.dp))
@@ -193,13 +171,12 @@ fun CreateLoadScreen() {
                         val dc = deliveryCost.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO
 
                         // Calculate total selling price per liter including delivery
-                        val spTotal = if (qty > java.math.BigDecimal.ZERO) 
+                        val spTotal = if (qty.compareTo(java.math.BigDecimal.ZERO) > 0) 
                             (spBase.multiply(qty).add(dc)).divide(qty, 4, java.math.RoundingMode.HALF_UP) 
                             else spBase
 
                         val req = ProcessLoadRequest(
                             brvId = selectedBrv!!.id,
-                            supplierId = selectedSupplier?.id ?: 1L,
                             customerId = selectedCustomer!!.id,
                             warehouseId = selectedWarehouse?.id ?: 0L,
                             loadedQuantity = qty,
@@ -223,14 +200,10 @@ fun CreateLoadScreen() {
                                 description = ""
                                 brvIndex = null
                                 selectedBrv = null
-                                // Keep supplier as is or reset? Usually keep or reset.
-                                // I'll reset for consistency if we want to force re-selection or just leave it.
-                                // Actually, let's reset to null for safety.
-                                supplierIndex = null
-                                selectedSupplier = null
                                 selectedCustomer = null
                             } else {
                                 error = res.exceptionOrNull()?.message
+                                println("CreateLoad Error: $error")
                                 info = null
                             }
                             isProcessing = false

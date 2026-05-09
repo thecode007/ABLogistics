@@ -36,7 +36,6 @@ data class ProfitAnalysisResponse(
 @Serializable
 data class ProcessLoadRequest(
     val brvId: Long,
-    val supplierId: Long,
     val customerId: Long,
     val warehouseId: Long,
     @Serializable(with = BigDecimalAsStringSerializer::class)

@@ -66,6 +66,7 @@ fun CustomerSearch(
                 items(items = searchResult.value) { item ->
                     ListItem(
                         onClick = {
+                            keyword = item.name
                             expanded = false
                             onSelected(item.customer)
                         },

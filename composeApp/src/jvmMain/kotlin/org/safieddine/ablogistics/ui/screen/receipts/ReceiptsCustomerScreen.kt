@@ -275,8 +275,7 @@ fun ReceiptsCustomerScreen() {
 
                         val total = totalInbound - totalOutbound
                         val locale = Locale.getDefault()
-                        val numericValue = parseLocalizedNumber("%.2f".format(total), locale)
-                        val formattedValue = formatLocalized(numericValue, locale)
+                        val formattedValue = formatLocalized(total, locale)
                         Text(
                             text = formattedValue,
                             color = FluentTheme.colors.system.success,

@@ -1,18 +1,24 @@
 package org.safieddine.ablogistics.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.composefluent.FluentTheme
 import io.github.composefluent.component.SideNav
 import io.github.composefluent.component.SideNavItem
 import io.github.composefluent.icons.Icons
 import io.github.composefluent.icons.filled.PeopleCommunity
 import io.github.composefluent.icons.filled.PeopleMoney
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.safieddine.ablogistics.ui.screen.RailScreen
 import org.safieddine.ablogistics.ui.screen.customers.CustomerScreen
@@ -21,6 +27,8 @@ import org.safieddine.ablogistics.ui.screen.SettingsScreen
 import org.safieddine.ablogistics.ui.screen.fleet.FleetScreen
 import org.safieddine.ablogistics.ui.screen.receipts.DirectLoadEntryScreen
 import ablogistics.composeapp.generated.resources.*
+import io.github.composefluent.ExperimentalFluentApi
+import io.github.composefluent.component.rememberIndicatorState
 import io.github.composefluent.icons.filled.VehicleTruckProfile
 import io.github.composefluent.icons.regular.*
 
@@ -41,19 +49,20 @@ sealed class AppScreen(val title: String) {
     object ReceiptsCustomer : AppScreen("Customer Receipts")
     object Splash : AppScreen("Splash")
     object Login : AppScreen("Login")
-    object Distributors : AppScreen("Distributors")
+    object Distributors : AppScreen("Suppliers")
     object Settings : AppScreen("Settings")
     object Fleet : AppScreen("Fleet Tracking")
     object DirectLoad : AppScreen("Direct Load")
 }
 
+@OptIn(ExperimentalFluentApi::class)
 @Composable
 fun TeamsNavigationRail(
 ) {
     val navigationItems = listOf(
         NavigationItem(
             "Dashboard",
-            Icons.Default.Apps,
+            Icons.Regular.Apps,
             AppScreen.Dashboard
         ),
         NavigationItem(
@@ -72,8 +81,8 @@ fun TeamsNavigationRail(
             AppScreen.Customers
         ),
         NavigationItem(
-            "Distributors",
-            Icons.Filled.PeopleMoney, // Using PeopleMoney as a placeholder for Distributors
+            "Suppliers",
+            Icons.Filled.PeopleMoney, 
             AppScreen.Distributors
         ),
         NavigationItem(
@@ -86,30 +95,55 @@ fun TeamsNavigationRail(
 
     var expanded by remember { mutableStateOf(false) }
     var selectedIndex by remember { mutableStateOf(0) }
-
     var title by remember { mutableStateOf(navigationItems[0].title) }
+    val indicatorState = rememberIndicatorState()
+
     Row(Modifier.fillMaxSize()) {
         SideNav(
+            indicatorState = indicatorState,
             expanded = expanded,
-            onExpandStateChange = { expanded = it },
-            modifier = Modifier.background(FluentTheme.colors.background.mica.base).fillMaxHeight()
-        ) {
-            navigationItems.forEachIndexed { index, navitem ->
-                SideNavItem(
-                    selected = selectedIndex == index,
-                    onClick = { 
-                        selectedIndex = index
-                        title = navitem.title
-                    },
-                    content = @Composable {
-                        Text(navitem.title)
-                    },
-                    icon = @Composable {
-                        Icon(imageVector = navitem.icon, "")
+            onExpandStateChange = { isExpanded -> expanded = isExpanded },
+            modifier = Modifier.background(FluentTheme.colors.background.mica.base).fillMaxHeight(),
+            header = {
+                Row(
+                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                        painter = painterResource(Res.drawable.ab_logo),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    if (expanded) {
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            text = "AB LOGISTICS LTD",
+                            style = FluentTheme.typography.bodyStrong.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
+                        )
                     }
-                )
+                }
+            },
+            content = {
+                navigationItems.forEachIndexed { index, navitem ->
+                    SideNavItem(
+                        selected = selectedIndex == index,
+                        onClick = { 
+                            selectedIndex = index
+                            title = navitem.title
+                        },
+                        content = {
+                            Text(navitem.title)
+                        },
+                        icon = {
+                            Icon(imageVector = navitem.icon, "")
+                        }
+                    )
+                }
             }
-        }
+        )
 
 
         RailScreen(title = title,navigationItems[selectedIndex].icon) {

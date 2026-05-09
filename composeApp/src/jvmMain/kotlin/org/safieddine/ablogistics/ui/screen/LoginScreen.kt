@@ -141,6 +141,15 @@ fun LoginCard(
                     modifier = Modifier.size(70.dp),
                     contentScale = ContentScale.Fit
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "AB LOGISTICS LTD",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
 
             Spacer(modifier = Modifier.height(24.dp))
 
