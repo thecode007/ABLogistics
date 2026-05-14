@@ -1,3 +1,4 @@
+@file:OptIn(io.github.composefluent.ExperimentalFluentApi::class)
 package org.safieddine.ablogistics
 
 import androidx.compose.animation.AnimatedVisibility
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -33,11 +35,16 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.composefluent.FluentTheme
+import io.github.composefluent.ExperimentalFluentApi
+import io.github.composefluent.background.MaterialContainer
+import io.github.composefluent.background.Material
+import io.github.composefluent.background.MaterialDefaults
 import io.github.composefluent.component.ContentDialogButton
 import io.github.composefluent.component.Icon
 import io.github.composefluent.component.Badge
 import io.github.composefluent.component.BadgeStatus
 import io.github.composefluent.component.InfoBar
+import org.safieddine.ablogistics.ui.screen.receipts.PriceEditDialog
 import io.github.composefluent.component.InfoBarDefaults
 import io.github.composefluent.component.ProgressRing
 import io.github.composefluent.icons.Icons
@@ -81,6 +88,7 @@ fun main() = application {
     val scope = rememberCoroutineScope()
     var displayLogoutDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
+    var showPriceEditDialog by remember { mutableStateOf(false) }
     var showDecisionDialog by remember { mutableStateOf(false) }
     var decisionTitle by remember { mutableStateOf("") }
     var decisionMessage by remember { mutableStateOf("") }
@@ -197,12 +205,15 @@ fun main() = application {
                     )
                 }
 
-                Box(contentAlignment = Alignment.Center) {
-                    Column {
+                MaterialContainer(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(with(this@MaterialContainer) { Modifier.fillMaxSize().behindMaterial() }) {
+                        this@MaterialContainer.Material(material = MaterialDefaults.acrylicDefault()) {
                         TitleBar(
                             titleBarState = titleBarState.copy(
                                 isOnline = isOnline
                             ),
+                            globalPrices = mainViewModel.globalPrices.collectAsState().value,
                             onClose = closeApp,
                             onMinimize = { windowState.isMinimized = true },
                             onWarehouseExit = {
@@ -226,10 +237,15 @@ fun main() = application {
                                     WindowPlacement.Maximized
                                 }
                             },
-                            isMaximized = isMaximized
-                        ) {
-                            displayLogoutDialog = true
-                        }
+                            isMaximized = isMaximized,
+                            onLogout = {
+                                displayLogoutDialog = true
+                            },
+                            onPriceEdit = {
+                                showPriceEditDialog = true
+                            }
+                        )
+                        } // end Material (TitleBar)
                         Row {
                             AppNavigation(
                                 modifier = Modifier.weight(1f),
@@ -247,6 +263,7 @@ fun main() = application {
                                                 jwt = token,
                                                 username = user.username
                                             )
+                                            mainViewModel.fetchPrices()
                                         }
                                     }
                                 }, onLogout = {
@@ -290,68 +307,6 @@ fun main() = application {
                                         }
                                     }
                                 })
-
-                            AnimatedVisibility(currentUser != null && currentUser?.isAdmin() == true) {
-                                Column(
-                                    Modifier
-                                        .background(FluentTheme.colors.background.mica.base)
-                                        .fillMaxHeight()
-                                        .width(50.dp)
-                                ) {
-
-
-                                    IconButton({ showNotificationsSidebar = !showNotificationsSidebar }) {
-                                        val pending by NotificationManager.pendingDecisions.collectAsState()
-                                        Box(
-                                            modifier = Modifier.wrapContentWidth(Alignment.CenterHorizontally)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Alert,
-                                                modifier = Modifier.size(25.dp),
-                                                contentDescription = null
-                                            )
-                                            if (pending > 0) {
-                                                val content = if (pending > 99) "99+" else pending.toString()
-                                                Box(modifier = Modifier.align(Alignment.TopEnd)) {
-                                                    Badge(
-                                                        status = BadgeStatus.Attention,
-                                                        modifier = Modifier.size(15.dp)
-                                                    ) {
-                                                        Text(
-                                                            text = content, color = White,
-                                                            fontSize = 10.sp
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    if (currentUser?.isAdmin() == true) {
-                                        IconButton({
-                                            showLogsSidebar = !showLogsSidebar
-                                        }) {
-
-                                            Box(
-                                                modifier = Modifier
-                                                    .wrapContentWidth(Alignment.CenterHorizontally)
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Regular.ClipboardTextLtr,
-                                                    contentDescription = "ClipboardTextLtr",
-                                                    modifier = Modifier.size(25.dp),
-
-                                                    )
-                                            }
-                                        }
-                                    }
-
-
-                                    Spacer(Modifier.weight(1f))
-
-                                    HorizontalDivider(color = BrandingWhite)
-                                }
-                            }
                         }
                     }
 
@@ -407,6 +362,7 @@ fun main() = application {
                         }
                     }
                 }
+                } // end MaterialContainer
 
                 // Right-side logs sidebar overlay
                 LogsSidebar(
@@ -418,6 +374,15 @@ fun main() = application {
                 NotificationsSidebar(
                     visible = showNotificationsSidebar,
                     onClose = { showNotificationsSidebar = false }
+                )
+
+                PriceEditDialog(
+                    visible = showPriceEditDialog,
+                    currentPrices = mainViewModel.globalPrices.collectAsState().value,
+                    onDismiss = { showPriceEditDialog = false },
+                    onSave = { newPrices ->
+                        mainViewModel.updatePrices(newPrices)
+                    }
                 )
             }
             }

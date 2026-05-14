@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_title">AB LOGISTICS LTD</string>
+    <string name="supplier">Supplier</string>
     <string name="role_admin">Admin</string>
     <string name="role_manager">Manager</string>
     <string name="online">Online</string>

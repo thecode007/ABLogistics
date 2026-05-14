@@ -4,9 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import io.github.composefluent.component.Text
+import androidx.compose.material.Text
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,12 +36,9 @@ import org.safieddine.ablogistics.ui.screen.adminScreen.UserTableShimmerRow
 import org.safieddine.ablogistics.ui.theme.DeleteDialog
 import org.safieddine.ablogistics.ui.screen.StateOfAccountScreen
 import org.safieddine.ablogistics.ui.screen.StatementOverlayDialog
-import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
-import org.safieddine.ablogistics.ui.theme.ABLogisticsButton
-import org.safieddine.ablogistics.ui.theme.ABLogisticsSubtleButton
-import org.safieddine.ablogistics.ui.theme.ABLogisticsAccentButton
 
 import java.util.*
+import java.time.format.DateTimeFormatter
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalFluentApi::class, ExperimentalTime::class)
@@ -167,7 +165,7 @@ fun ReceiptsCustomerScreen() {
 
                 Spacer(Modifier.width(8.dp))
 
-                ABLogisticsTextField(
+                TextField(
                     modifier = Modifier.width(300.dp),
                     value = search,
                     onValueChange = { search = it },
@@ -188,7 +186,7 @@ fun ReceiptsCustomerScreen() {
                                 localDate.day,
                                 0, 0, 0, 0
                             )
-                            startDate = startOfDay.toInstant(java.time.ZoneOffset.UTC).toEpochMilli()
+                            startDate = startOfDay.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
                             page = 0
                             load()
                         }
@@ -202,14 +200,14 @@ fun ReceiptsCustomerScreen() {
                                 localDate.day,
                                 23, 59, 59, 0
                             ).plusNanos(999_000_000) // include the full last second
-                            endDate = endOfDay.toInstant(java.time.ZoneOffset.UTC).toEpochMilli()
+                            endDate = endOfDay.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
                             page = 0
                             load()
                         }
                     )
                 }
 
-                ABLogisticsSubtleButton(iconOnly = true, onClick = {
+                SubtleButton(iconOnly = true, onClick = {
                     clearDatesKey = System.currentTimeMillis()
                     startDate = null; endDate = null
                     page = 0; load()
@@ -226,10 +224,11 @@ fun ReceiptsCustomerScreen() {
                 }
 
                 Spacer(Modifier.width(6.dp))
-                ABLogisticsSubtleButton(
+                val balance = totalOutbound.minus(totalInbound)
+                SubtleButton(
                     iconOnly = true,
                     onClick = { showForm = true },
-                    disabled = selectedCustomerId == null
+                    disabled = selectedCustomerId == null || balance <= java.math.BigDecimal.ZERO
                 ) {
                     Icon(
                         Icons.Default.Add,
@@ -238,7 +237,7 @@ fun ReceiptsCustomerScreen() {
                 }
 
                 Spacer(Modifier.width(6.dp))
-                ABLogisticsSubtleButton(
+                SubtleButton(
                     iconOnly = true,
                     onClick = { showStatement = true },
                     disabled = selectedCustomerId == null
@@ -246,7 +245,6 @@ fun ReceiptsCustomerScreen() {
                     Icon(Icons.Filled.PersonNote, contentDescription = "Statement of Account")
                 }
             }
-
             Spacer(Modifier.height(16.dp))
 
             Row(
@@ -258,6 +256,30 @@ fun ReceiptsCustomerScreen() {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
+                    Card(Modifier) {
+                        Text(
+                            modifier = Modifier.padding(8.dp),
+                            text = stringResource(Res.string.app_title),
+                            style = FluentTheme.typography.title
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        InboundArrow(amount = totalOutbound.toPlainString())
+                        val balance = totalOutbound.minus(totalInbound)
+                        val locale = Locale.getDefault()
+                        val formattedValue = formatLocalized(balance, locale)
+                        Text(
+                            text = formattedValue,
+                            color = if (balance > java.math.BigDecimal.ZERO) FluentTheme.colors.system.critical else FluentTheme.colors.system.success,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        OutboundArrow(amount = totalInbound.toPlainString())
+                    }
 
                     Card(Modifier) {
                         val selectedName = selectedCustomerIndex?.let { idx -> customers.getOrNull(idx)?.name }
@@ -267,23 +289,9 @@ fun ReceiptsCustomerScreen() {
                             style = FluentTheme.typography.title
                         )
                     }
-                    Column(
-                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-
-                        val total = totalInbound - totalOutbound
-                        val locale = Locale.getDefault()
-                        val formattedValue = formatLocalized(total, locale)
-                        Text(
-                            text = formattedValue,
-                            color = FluentTheme.colors.system.success,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
                 }
             }
+
 
             Spacer(Modifier.height(16.dp))
 
@@ -390,10 +398,13 @@ fun ReceiptsCustomerScreen() {
                             if (r.isReturned)
                                 statusColor = FluentTheme.colors.system.attention
 
-                            val icon = if (r.beforeImpactFunds > r.afterImpactFunds) {
-                                Icons.Filled.ArrowTrendingDown
-                            } else
+                            // Negate to show debt-balance perspective: OUTWARD increases the debt (positive)
+                            val displayBefore = r.beforeImpactFunds.negate()
+                            val displayAfter = r.afterImpactFunds.negate()
+                            val icon = if (displayAfter > displayBefore) {
                                 Icons.Filled.ArrowTrending
+                            } else
+                                Icons.Filled.ArrowTrendingDown
 
 
                             Row(
@@ -402,13 +413,14 @@ fun ReceiptsCustomerScreen() {
                                     .padding(horizontal = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(r.receiptId ?: "", Modifier.weight(1f), textAlign = TextAlign.Center)
+                                Text(r.receiptId ?: "N/A", Modifier.weight(1f), textAlign = TextAlign.Center)
                                 Row(Modifier.weight(0.8f), horizontalArrangement = Arrangement.Center) {
                                     Icon(icon, contentDescription = "", tint = statusColor)
                                     Spacer(Modifier.width(4.dp))
                                     Text(r.receiptType.name, color = statusColor)
                                 }
-                                val formattedValue = formatLocalized(r.amount, Locale.getDefault())
+                                val numericValueF = parseLocalizedNumber("%.2f".format(r.amount), Locale.getDefault())
+                                val formattedValue = formatLocalized(numericValueF, Locale.getDefault())
                                 Text(formattedValue, Modifier.weight(1f), textAlign = TextAlign.Center)
                                 Text(r.description ?: "", Modifier.weight(1.6f), textAlign = TextAlign.Center)
                                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center) {
@@ -423,17 +435,17 @@ fun ReceiptsCustomerScreen() {
                                     }
 
                                     Spacer(Modifier.width(6.dp))
-//                                    if (r.receiptType == ReceiptType.OUTWARD) {
-//                                        IconButton(onClick = { toReturn = r }) {
-//                                            Icon(
-//                                                Icons.Filled.ArrowBounce,
-//                                                contentDescription = "Mark as returned",
-//                                                tint = FluentTheme.colors.system.caution
-//                                            )
-//                                        }
-//                                        Spacer(Modifier.width(6.dp))
-//                                    }
-                                    if (!r.isReturned)
+                                    if (r.receiptType == ReceiptType.OUTWARD) {
+                                        IconButton(onClick = { toReturn = r }) {
+                                            Icon(
+                                                Icons.Filled.ArrowBounce,
+                                                contentDescription = "Mark as returned",
+                                                tint = FluentTheme.colors.system.caution
+                                            )
+                                        }
+                                        Spacer(Modifier.width(6.dp))
+                                    }
+                                    if (!r.isReturned && r.receiptType != ReceiptType.OUTWARD)
                                         IconButton(onClick = { toDelete = r }) {
                                             Icon(
                                                 Icons.Filled.Delete,
@@ -444,20 +456,12 @@ fun ReceiptsCustomerScreen() {
                                 }
                                 Text(formatDate(r.createdAt), Modifier.weight(1.2f), textAlign = TextAlign.Center)
 
-                                val previousColor = when (r.receiptType) {
-                                    ReceiptType.INWARD -> {
-                                        Black
-                                    }
-
-                                    ReceiptType.OUTWARD -> {
-                                        FluentTheme.colors.system.critical
-
-                                    }
-
-                                    ReceiptType.RETURNED -> {
-                                        Black
-                                    }
-                                }
+                                // beforeColor: neutral for zero/paid, critical if there's existing debt
+                                val previousColor = if (displayBefore > java.math.BigDecimal.ZERO)
+                                    FluentTheme.colors.system.critical else Black
+                                // afterColor: critical if debt increased, success if it decreased
+                                val afterColor = if (displayAfter > displayBefore)
+                                    FluentTheme.colors.system.critical else FluentTheme.colors.system.success
 
                                 Row(
                                     modifier = Modifier.weight(1.2f),
@@ -466,7 +470,7 @@ fun ReceiptsCustomerScreen() {
                                 ) {
                                     Text(
                                         color = previousColor,
-                                        text = formatLocalized(r.beforeImpactFunds, Locale.getDefault()),
+                                        text = formatLocalized(displayBefore, Locale.getDefault()),
                                         textAlign = TextAlign.Center
                                     )
 
@@ -475,15 +479,15 @@ fun ReceiptsCustomerScreen() {
                                     Icon(
                                         imageVector = icon,
                                         contentDescription = "",
-                                        tint = statusColor
+                                        tint = afterColor
                                     )
 
                                     Spacer(Modifier.width(3.dp))
 
                                     Text(
-                                        formatLocalized(r.afterImpactFunds, Locale.getDefault()),
+                                        formatLocalized(displayAfter, Locale.getDefault()),
                                         textAlign = TextAlign.Center,
-                                        color = statusColor
+                                        color = afterColor
                                     )
                                 }
                             }
@@ -501,13 +505,13 @@ fun ReceiptsCustomerScreen() {
             ) {
                 Text("Page ${data.number + 1} / ${maxOf(data.totalPages, 1)}")
                 Spacer(Modifier.width(8.dp))
-                ABLogisticsButton(disabled = page <= 0, onClick = {
+                Button(disabled = page <= 0, onClick = {
                     if (page > 0) {
                         page -= 1; load()
                     }
                 }) { Text("Prev") }
                 Spacer(Modifier.width(8.dp))
-                ABLogisticsButton(disabled = page >= data.totalPages - 1, onClick = {
+                Button(disabled = page >= data.totalPages - 1, onClick = {
                     if (page < data.totalPages - 1) {
                         page += 1; load()
                     }
@@ -518,7 +522,7 @@ fun ReceiptsCustomerScreen() {
             if (toReturn != null) {
                 val r = toReturn!!
                 var returnAmount by remember(toReturn) {
-                    mutableStateOf(r.amount.toPlainString())
+                    mutableStateOf("".ifBlank { "%.2f".format(r.amount) })
                 }
                 var touched by remember(toReturn) { mutableStateOf(false) }
                 var isReturning by remember(toReturn) { mutableStateOf(false) }
@@ -567,24 +571,24 @@ fun ReceiptsCustomerScreen() {
                     },
                     content = {
                         Column(Modifier.fillMaxWidth()) {
-                            Text("Max: ${maxAmount.toPlainString()}")
+                            Text("Max: %.2f".format(maxAmount))
                             Spacer(Modifier.height(8.dp))
-                            ABLogisticsTextField(
+                            OutlinedTextField(
                                 value = returnAmount,
-                                onValueChange = { input ->
-                                    returnAmount = input.filter { it.isDigit() || it == '.' }
+                                onValueChange = {
+                                    val filtered = it.filter { ch -> ch.isDigit() || ch == '.' }
                                         .replace(Regex("\\.(?=.*\\.)"), "")
+                                    returnAmount = filtered
                                 },
-                                // Fluent TextField doesn't have supportingText, but we can show it below if needed.
-                                // Or we can use description if supported.
-                                header = { Text("Return Amount") },
+                                isError = touched && !validReturn,
+                                label = { Text("Return Amount") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
                             if (touched && !validReturn) {
                                 Spacer(Modifier.height(6.dp))
                                 Text(
-                                    text = "Enter a value between 0 and ${maxAmount.toPlainString()}",
+                                    text = "Enter a value between 0 and %.2f".format(maxAmount),
                                     color = FluentTheme.colors.system.critical
                                 )
                             }
@@ -605,10 +609,11 @@ fun ReceiptsCustomerScreen() {
             if (editing != null) {
                 var receiptId by remember(editing) { mutableStateOf(editing?.receiptId ?: "") }
                 var amount by remember(editing) {
-                    mutableStateOf(editing?.amount?.toPlainString() ?: "")
+                    val plain = editing?.amount?.stripTrailingZeros()?.toPlainString() ?: ""
+                    mutableStateOf(plain)
                 }
                 var description by remember(editing) { mutableStateOf(editing?.description ?: "") }
-                var rtIndex by remember(editing) { mutableStateOf(if (editing?.receiptType == ReceiptType.INWARD) 0 else 1) }
+                var rtIndex by remember(editing) { mutableStateOf(0) } // Fixed to INWARD (0)
                 var touched by remember { mutableStateOf(false) }
                 var customDateMillis by remember(editing) {
                     mutableStateOf(
@@ -637,10 +642,7 @@ fun ReceiptsCustomerScreen() {
                                 if (!valid || editing?.id == null) return@ContentDialog
                                 val req = UpdateReceiptRequest(
                                     receiptId = receiptId.trim(),
-                                    receiptType = if (rtIndex == 0)
-                                        ReceiptType.INWARD
-                                    else
-                                        ReceiptType.OUTWARD,
+                                    receiptType = ReceiptType.INWARD,
                                     entityType = EntityType.CUSTOMER,
                                     amount = amount.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO,
                                     description = description.ifBlank { null },
@@ -663,28 +665,27 @@ fun ReceiptsCustomerScreen() {
                     },
                     content = {
                         Column(Modifier.fillMaxWidth()) {
-                             ABLogisticsTextField(
+                            OutlinedTextField(
                                 value = receiptId, onValueChange = { receiptId = it },
-                                header = { Text(stringResource(Res.string.receipt_id)) },
+                                label = { Text(stringResource(Res.string.receipt_id)) },
+                                isError = touched && receiptId.isBlank(),
                                 singleLine = true, modifier = Modifier.fillMaxWidth()
                             )
                             Spacer(Modifier.height(8.dp))
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                ComboBox(
-                                    placeholder = stringResource(Res.string.type), selected = rtIndex,
-                                    items = listOf("INWARD", "OUTWARD"), onSelectionChange = { i, _ -> rtIndex = i })
-
-                                Spacer(Modifier.weight(1f))
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
 
                                 CalendarDatePicker(
                                     onChoose = { localDate ->
+                                        val now = java.time.LocalDateTime.now()
                                         val ldt = java.time.LocalDateTime.of(
                                             localDate.year,
                                             localDate.monthValue + 1,
                                             localDate.day,
-                                            0, 0, 0
+                                            now.hour,
+                                            now.minute,
+                                            now.second
                                         )
-                                        val odt = java.time.OffsetDateTime.of(ldt, java.time.ZoneOffset.UTC)
+                                        val odt = java.time.OffsetDateTime.of(ldt, java.time.ZoneId.systemDefault().rules.getOffset(java.time.Instant.now()))
                                         customDateMillis = odt.toInstant().toEpochMilli()
                                     }
                                 )
@@ -692,26 +693,25 @@ fun ReceiptsCustomerScreen() {
                             if (customDateMillis != null) {
                                 Spacer(Modifier.height(6.dp))
                                 val label = java.time.Instant.ofEpochMilli(customDateMillis!!)
-                                    .atOffset(java.time.ZoneOffset.UTC)
+                                    .atZone(java.time.ZoneId.systemDefault())
                                     .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
                                 Text("Selected: $label")
                             }
                             Spacer(Modifier.height(8.dp))
-                             ABLogisticsTextField(
+                            OutlinedTextField(
                                 value = amount,
-                                onValueChange = { input ->
-                                    amount = input.filter { it.isDigit() || it == '.' }
+                                onValueChange = {
+                                    amount = it.filter { ch -> ch.isDigit() || ch == '.' }
                                         .replace(Regex("\\.(?=.*\\.)"), "")
                                 },
-                                header = { Text(stringResource(Res.string.amount)) },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                                label = { Text(stringResource(Res.string.amount)) },
+                                isError = touched && (amount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } != true),
+                                singleLine = true, modifier = Modifier.fillMaxWidth())
 
                             Spacer(Modifier.height(8.dp))
-                             ABLogisticsTextField(
+                            OutlinedTextField(
                                 value = description, onValueChange = { description = it },
-                                header = { Text(stringResource(Res.string.description_optional)) },
+                                label = { Text(stringResource(Res.string.description_optional)) },
                                 singleLine = true, modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -752,22 +752,20 @@ fun ReceiptsCustomerScreen() {
                 var receiptId by remember { mutableStateOf("") }
                 var amount by remember { mutableStateOf("") }
                 var description by remember { mutableStateOf("") }
-                var rtIndex by remember { mutableStateOf(0) } // 0 INWARD, 1 OUTWARD
                 var touched by remember { mutableStateOf(false) }
                 var creating by remember { mutableStateOf(false) }
-                var useCustomDate by remember { mutableStateOf(true) }
-                var customDateIso by remember { mutableStateOf<String?>(null) }
                 var customDateMillis by remember {
                     mutableStateOf<Long?>(
-                        java.time.LocalDate.now(java.time.ZoneOffset.UTC)
-                            .atStartOfDay(java.time.ZoneOffset.UTC)
-                            .toInstant()
-                            .toEpochMilli()
+                        java.time.Instant.now().toEpochMilli()
                     )
                 }
+                val availableBalance = totalOutbound.minus(totalInbound)
+                val amountParsed = amount.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO
+                val amountExceedsBalance = amountParsed > availableBalance
                 val valid =
                     receiptId.isNotBlank() &&
-                            (amount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } == true) &&
+                            (amount.toDoubleOrNull()?.let { it > 0 } == true) &&
+                            !amountExceedsBalance &&
                             (selectedWarehouse != null && selectedCustomerId != null)
 
                 ContentDialog(
@@ -785,17 +783,13 @@ fun ReceiptsCustomerScreen() {
                                 creating = true
                                 val req = CreateReceiptRequest(
                                     receiptId = receiptId.trim(),
-                                    receiptType = if (rtIndex == 0)
-                                        ReceiptType.INWARD
-                                    else
-                                        ReceiptType.OUTWARD
-                                        ,
+                                    receiptType = ReceiptType.INWARD,
                                     entityType = EntityType.CUSTOMER,
                                     warehouseId = selectedWarehouse!!.id,
                                     customerId = selectedCustomerId,
                                     amount = amount.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO,
                                     description = description.ifBlank { null },
-                                    createdAtMillis = if (useCustomDate) customDateMillis else null
+                                    createdAtMillis = customDateMillis
                                 )
                                 scope.launch {
                                     val res = ReceiptService.create(req)
@@ -816,48 +810,64 @@ fun ReceiptsCustomerScreen() {
                     },
                     content = {
                         Column(Modifier.fillMaxWidth()) {
-                             ABLogisticsTextField(
+                            OutlinedTextField(
                                 value = receiptId,
                                 onValueChange = { receiptId = it },
-                                header = { Text("Receipt ID") },
+                                label = { Text("Receipt ID") },
+                                isError = touched && receiptId.isBlank(),
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
                             Spacer(Modifier.height(8.dp))
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                ComboBox(
-                                    placeholder = "Type",
-                                    selected = rtIndex,
-                                    items = listOf("INWARD", "OUTWARD"),
-                                    onSelectionChange = { i, _ -> rtIndex = i })
-                                Spacer(Modifier.weight(1f))
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
 
                                 CalendarDatePicker(
                                     onChoose = { localDate ->
+                                        val now = java.time.LocalDateTime.now()
                                         val ldt = java.time.LocalDateTime.of(
                                             localDate.year,
                                             localDate.monthValue + 1,
                                             localDate.day,
-                                            0, 0, 0
+                                            now.hour,
+                                            now.minute,
+                                            now.second
                                         )
-                                        val odt = java.time.OffsetDateTime.of(ldt, java.time.ZoneOffset.UTC)
-                                        customDateIso =
-                                            odt.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                                        val odt = ldt.atZone(java.time.ZoneId.systemDefault()).toOffsetDateTime()
                                         customDateMillis = odt.toInstant().toEpochMilli()
                                     }
                                 )
                             }
+                            if (customDateMillis != null) {
+                                Spacer(Modifier.height(6.dp))
+                                val label = java.time.Instant.ofEpochMilli(customDateMillis!!)
+                                    .atZone(java.time.ZoneId.systemDefault())
+                                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                                Text("Selected: $label")
+                            }
                             Spacer(Modifier.height(8.dp))
-                             ABLogisticsTextField(
-                                value = amount,
-                                onValueChange = { input ->
-                                    amount = input.filter { it.isDigit() || it == '.' }
-                                        .replace(Regex("\\.(?=.*\\.)"), "")
-                                },
-                                header = { Text("Amount") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
+                            Text(
+                                text = "Available balance: ${formatLocalized(availableBalance, Locale.getDefault())}",
+                                color = FluentTheme.colors.text.accent.secondary
                             )
+                            Spacer(Modifier.height(4.dp))
+                            OutlinedTextField(
+                                value = amount,
+                                onValueChange = {
+                                    amount =
+                                        it.filter { ch -> ch.isDigit() || ch == '.' }
+                                            .replace(Regex("\\.(?=.*\\.)"), "")
+                                },
+                                label = { Text("Amount") },
+                                isError = touched && (amount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } != true || amountExceedsBalance),
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth())
+                            if (touched && amountExceedsBalance) {
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = "Amount exceeds available balance (${formatLocalized(availableBalance, Locale.getDefault())})",
+                                    color = FluentTheme.colors.system.critical
+                                )
+                            }
 
                             if (creating) {
                                 Spacer(Modifier.height(8.dp))
@@ -868,10 +878,10 @@ fun ReceiptsCustomerScreen() {
                                 }
                             }
                             Spacer(Modifier.height(8.dp))
-                             ABLogisticsTextField(
+                            OutlinedTextField(
                                 value = description,
                                 onValueChange = { description = it },
-                                header = { Text("Description (optional)") },
+                                label = { Text("Description (optional)") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )

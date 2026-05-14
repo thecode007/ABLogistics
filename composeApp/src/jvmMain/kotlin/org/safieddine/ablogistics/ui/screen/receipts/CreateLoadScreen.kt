@@ -19,6 +19,8 @@ import org.safieddine.ablogistics.data.service.*
 import org.safieddine.ablogistics.data.session.SessionStore
 import org.safieddine.ablogistics.ui.theme.*
 import org.safieddine.ablogistics.ui.theme.ABLogisticsAccentButton
+import org.safieddine.ablogistics.ui.utils.NumberCommaTransformation
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalFluentApi::class)
 @Composable
@@ -37,6 +39,7 @@ fun CreateLoadScreen() {
     var costPrice by remember { mutableStateOf("") }
     var sellingPrice by remember { mutableStateOf("") }
     var deliveryCost by remember { mutableStateOf("") }
+    var selectedMaterial by remember { mutableStateOf(MaterialType.FUEL) }
     var description by remember { mutableStateOf("") }
 
     var isLoading by remember { mutableStateOf(false) }
@@ -44,6 +47,7 @@ fun CreateLoadScreen() {
     var info by remember { mutableStateOf<String?>(null) }
 
     var isProcessing by remember { mutableStateOf(false) }
+    var customDateMillis by remember { mutableStateOf<Long?>(null) }
 
     // Initial load
     LaunchedEffect(selectedWarehouse) {
@@ -110,6 +114,31 @@ fun CreateLoadScreen() {
                 )
                 Spacer(Modifier.height(24.dp))
 
+                // Material Selection
+                Text("Material Type", style = FluentTheme.typography.bodyStrong)
+                Spacer(Modifier.height(4.dp))
+                Row(Modifier.fillMaxWidth()) {
+                    MaterialType.values().forEach { type ->
+                        if (selectedMaterial == type) {
+                            ABLogisticsAccentButton(
+                                onClick = { selectedMaterial = type },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(type.name)
+                            }
+                        } else {
+                            ABLogisticsSubtleButton(
+                                onClick = { selectedMaterial = type },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(type.name)
+                            }
+                        }
+                        if (type != MaterialType.values().last()) Spacer(Modifier.width(8.dp))
+                    }
+                }
+                Spacer(Modifier.height(24.dp))
+
                 // Numbers
                 Row(Modifier.fillMaxWidth()) {
                     Column(Modifier.weight(1f)) {
@@ -117,6 +146,7 @@ fun CreateLoadScreen() {
                             value = quantity,
                             onValueChange = { quantity = it.filter { ch -> ch.isDigit() || ch == '.' } },
                             header = { Text("Quantity (Liters)") },
+                            visualTransformation = NumberCommaTransformation(),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -126,6 +156,7 @@ fun CreateLoadScreen() {
                             value = costPrice,
                             onValueChange = { costPrice = it.filter { ch -> ch.isDigit() || ch == '.' } },
                             header = { Text("Cost per Liter (Admin)") },
+                            visualTransformation = NumberCommaTransformation(),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -138,6 +169,7 @@ fun CreateLoadScreen() {
                             value = sellingPrice,
                             onValueChange = { sellingPrice = it.filter { ch -> ch.isDigit() || ch == '.' } },
                             header = { Text("Selling Price per Liter") },
+                            visualTransformation = NumberCommaTransformation(),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -147,6 +179,7 @@ fun CreateLoadScreen() {
                             value = deliveryCost,
                             onValueChange = { deliveryCost = it.filter { ch -> ch.isDigit() || ch == '.' } },
                             header = { Text("Delivery Cost (Total)") },
+                            visualTransformation = NumberCommaTransformation(),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -159,6 +192,34 @@ fun CreateLoadScreen() {
                     header = { Text("Description (Optional)") },
                     modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(Modifier.height(16.dp))
+
+                // Date Picker
+                Text("Date", style = FluentTheme.typography.bodyStrong)
+                Spacer(Modifier.height(4.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+                    CalendarDatePicker(
+                        onChoose = { localDate ->
+                            val now = java.time.LocalDateTime.now()
+                            val ldt = java.time.LocalDateTime.of(
+                                localDate.year,
+                                localDate.monthValue + 1,
+                                localDate.day,
+                                now.hour,
+                                now.minute,
+                                now.second
+                            )
+                            val odt = ldt.atZone(java.time.ZoneId.systemDefault()).toOffsetDateTime()
+                            customDateMillis = odt.toInstant().toEpochMilli()
+                        }
+                    )
+                }
+                customDateMillis?.let { millis ->
+                    val label = java.time.Instant.ofEpochMilli(millis)
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                    Text("Selected: $label", style = FluentTheme.typography.caption, color = FluentTheme.colors.text.accent.secondary)
+                }
                 Spacer(Modifier.height(32.dp))
 
                 ABLogisticsAccentButton(
@@ -179,11 +240,13 @@ fun CreateLoadScreen() {
                             brvId = selectedBrv!!.id,
                             customerId = selectedCustomer!!.id,
                             warehouseId = selectedWarehouse?.id ?: 0L,
+                            materialType = selectedMaterial,
                             loadedQuantity = qty,
                             costPrice = cp,
                             sellingPrice = spTotal,
                             brvCost = dc,
-                            description = description.ifBlank { "Load for ${selectedCustomer?.name}" }
+                            description = description.ifBlank { "Load for ${selectedCustomer?.name}" },
+                            createdAtMillis = customDateMillis
                         )
 
                         isProcessing = true

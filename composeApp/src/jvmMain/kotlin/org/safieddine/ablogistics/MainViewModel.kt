@@ -9,7 +9,11 @@ import kotlinx.coroutines.launch
 import org.safieddine.ablogistics.data.AuthManager
 import org.safieddine.ablogistics.data.UpdateUserRequest
 import org.safieddine.ablogistics.data.WarehouseInfo
+import org.safieddine.ablogistics.data.MaterialPriceDTO
+import org.safieddine.ablogistics.data.NotificationManager
+import org.safieddine.ablogistics.data.session.GlobalPriceStore
 import org.safieddine.ablogistics.data.service.UserService
+import org.safieddine.ablogistics.data.service.PriceService
 
 class MainViewModel(val userService: UserService = UserService,
     val authManager: AuthManager): ViewModel() {
@@ -24,6 +28,48 @@ class MainViewModel(val userService: UserService = UserService,
     fun setSelectedWarehouse(warehouseDTO: WarehouseInfo?) {
         _selectedWarehouse.value = warehouseDTO
         authManager.setSelectedWarehouse(warehouseDTO)
+    }
+
+    private val _globalPrices = MutableStateFlow<List<MaterialPriceDTO>>(emptyList())
+    val globalPrices: StateFlow<List<MaterialPriceDTO>> = _globalPrices
+
+    init {
+        fetchPrices()
+        observePriceUpdates()
+    }
+
+    fun fetchPrices() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = PriceService.getGlobalPrices()
+            if (result.isSuccess) {
+                val data = result.getOrNull()?.data ?: emptyList()
+                _globalPrices.value = data
+                GlobalPriceStore.updatePrices(data)
+            } else {
+                println("Price Fetch Failed: ${result.exceptionOrNull()?.message}")
+            }
+        }
+    }
+
+    fun updatePrices(prices: List<MaterialPriceDTO>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = PriceService.updateGlobalPrices(prices)
+            if (result.isSuccess) {
+                fetchPrices()
+            } else {
+                println("Price Update Failed: ${result.exceptionOrNull()?.message}")
+            }
+        }
+    }
+
+    private fun observePriceUpdates() {
+        viewModelScope.launch {
+            NotificationManager.lastEvent.collect { event ->
+                if (event?.type == "PRICE_UPDATE") {
+                    fetchPrices()
+                }
+            }
+        }
     }
 
 

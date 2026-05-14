@@ -59,6 +59,7 @@ data class ReceiptResponse(
     val isReturned: Boolean,
     val isReturnAdjustment: Boolean,
     val description: String?,
+    val materialType: MaterialType? = null,
     val createdBy: String,
     val createdAt: String?
 )

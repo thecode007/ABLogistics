@@ -47,7 +47,8 @@ import org.safieddine.ablogistics.ui.theme.ABLogisticsSubtleButton
 import org.safieddine.ablogistics.ui.theme.ABLogisticsButton
 
 @Composable
-fun ColumnScope.  CustomerScreen() {
+fun CustomerScreen() {
+    Column(Modifier.fillMaxSize()) {
     val scope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -449,4 +450,5 @@ fun ColumnScope.  CustomerScreen() {
             )
         }
     }
+    } // end Column
 }

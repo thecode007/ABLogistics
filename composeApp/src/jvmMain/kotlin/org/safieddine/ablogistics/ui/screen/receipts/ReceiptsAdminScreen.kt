@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.Card
 import androidx.compose.material.Text
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
@@ -11,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color.Companion.Black
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,6 +62,11 @@ fun ReceiptsAdminScreen() {
     var size by remember { mutableStateOf(100) }
     var isLoading by remember { mutableStateOf(false) }
     var data by remember { mutableStateOf(PageResponse<ReceiptResponse>()) }
+    var totalInbound by remember { mutableStateOf(java.math.BigDecimal.ZERO) }
+    var totalOutbound by remember { mutableStateOf(java.math.BigDecimal.ZERO) }
+
+    // The displayed balance = inward - outward (same value shown between the arrows)
+    val currentBalance = totalInbound.subtract(totalOutbound)
 
     var toDelete by remember { mutableStateOf<ReceiptResponse?>(null) }
     var editing by remember { mutableStateOf<ReceiptResponse?>(null) }
@@ -101,6 +108,8 @@ fun ReceiptsAdminScreen() {
                         totalElements = summary.totalElements,
                         totalPages = summary.totalPages
                     )
+                    totalInbound = summary.totalInbound
+                    totalOutbound = summary.totalOutbound
 
                     error = null
                     // Update funds in title bar
@@ -166,7 +175,7 @@ fun ReceiptsAdminScreen() {
                                 localDate.day,
                                 0, 0, 0
                             )
-                            startDate = startOfDay.toInstant(java.time.ZoneOffset.UTC).toEpochMilli()
+                            startDate = startOfDay.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
 
                             page = 0
                             load()
@@ -188,7 +197,7 @@ fun ReceiptsAdminScreen() {
                                 23, 59, 59, 0
                             ).plusNanos(999_000_000)
 
-                            endDate = endOfDay.toInstant(java.time.ZoneOffset.UTC).toEpochMilli()
+                            endDate = endOfDay.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
 
                             println("Converted to: $endOfDay")
                             println("======================")
@@ -228,7 +237,10 @@ fun ReceiptsAdminScreen() {
                     )
                 }
                 Spacer(Modifier.width(6.dp))
-                ABLogisticsSubtleButton(iconOnly = true, onClick = { showForm = true }) {
+                ABLogisticsSubtleButton(
+                    iconOnly = true,
+                    onClick = { showForm = true }
+                ) {
                     Icon(
                         Icons.Default.Add,
                         contentDescription = stringResource(Res.string.add_receipt)
@@ -242,56 +254,56 @@ fun ReceiptsAdminScreen() {
                     Icon(Icons.Filled.PersonNote, contentDescription = "Statement of Account")
                 }
             }
-// TODO add flag in settigns later
-//    Row(
-//        modifier = Modifier.fillMaxWidth(),
-//        horizontalArrangement = Arrangement.Center
-//    ) {
-//        Row(
-//            modifier = Modifier.width(500.dp),
-//            verticalAlignment = Alignment.CenterVertically,
-//            horizontalArrangement = Arrangement.Center
-//        ) {
-//            Card(Modifier) {
-//                Text(
-//                    modifier = Modifier.padding(8.dp),
-//                    text = stringResource(Res.string.admin),
-//                    style = FluentTheme.typography.title
-//                )
-//            }
-//
-//            Column(
-//                modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-//                verticalArrangement = Arrangement.Center,
-//                horizontalAlignment = Alignment.CenterHorizontally
-//            ) {
-//
-//                InboundArrow(amount = "%.2f".format(totalInbound))
-//
-//                val total = totalInbound.minus(totalOutbound)
-//
-//                val locale = Locale.getDefault()
-//                val numericValue = parseLocalizedNumber("%.2f".format(total), locale)
-//                val formattedValue = formatLocalized(numericValue, locale)
-//
-//                Text(
-//                    text = formattedValue,
-//                    color = FluentTheme.colors.system.success,
-//                    fontWeight = FontWeight.SemiBold
-//                )
-//
-//                OutboundArrow(amount = "%.2f".format(totalOutbound))
-//            }
-//
-//            Card(Modifier) {
-//                Text(
-//                    modifier = Modifier.padding(8.dp),
-//                    text = stringResource(Res.string.warehouse),
-//                    style = FluentTheme.typography.title
-//                )
-//            }
-//        }
-//    }
+            // TODO add flag in settigns later
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Row(
+                    modifier = Modifier.width(700.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Card(Modifier) {
+                        Text(
+                            modifier = Modifier.padding(8.dp),
+                            text = stringResource(Res.string.supplier),
+                            style = FluentTheme.typography.title
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+
+                        InboundArrow(amount = totalInbound.toPlainString())
+
+                        val total = totalInbound.minus(totalOutbound)
+
+                        val locale = java.util.Locale.getDefault()
+                        val numericValue = parseLocalizedNumber(total.toPlainString(), locale)
+                        val formattedValue = formatLocalized(numericValue, locale)
+
+                        Text(
+                            text = formattedValue,
+                            color = FluentTheme.colors.system.success,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        OutboundArrow(amount = totalOutbound.toPlainString())
+                    }
+
+                    Card(Modifier) {
+                        Text(
+                            modifier = Modifier.padding(8.dp),
+                            text = stringResource(Res.string.app_title),
+                            style = FluentTheme.typography.title
+                        )
+                    }
+                }
+            }
 
             if (error != null) {
                 InfoBar(
@@ -445,12 +457,15 @@ fun ReceiptsAdminScreen() {
                                         )
                                     }
                                     Spacer(Modifier.width(6.dp))
-                                    IconButton(onClick = { toDelete = r }) {
-                                        Icon(
-                                            Icons.Filled.Delete,
-                                            contentDescription = "",
-                                            tint = FluentTheme.colors.system.critical
-                                        )
+                                    // Don't allow deleting INWARD receipts — they're generated from loads
+                                    if (r.receiptType != ReceiptType.INWARD) {
+                                        IconButton(onClick = { toDelete = r }) {
+                                            Icon(
+                                                Icons.Filled.Delete,
+                                                contentDescription = "",
+                                                tint = FluentTheme.colors.system.critical
+                                            )
+                                        }
                                     }
                                 }
                                 Text(
@@ -567,22 +582,21 @@ fun ReceiptsAdminScreen() {
         var receiptId by remember { mutableStateOf("") }
         var amount by remember { mutableStateOf("") }
         var description by remember { mutableStateOf("") }
-        var rtIndex by remember { mutableStateOf(0) } // 0 INWARD, 1 OUTWARD
+        var rtIndex by remember { mutableStateOf(1) } // Fixed to OUTWARD (1)
         var touched by remember { mutableStateOf(false) }
         var creating by remember { mutableStateOf(false) }
         var useCustomDate by remember { mutableStateOf(true) }
         var customDateIso by remember { mutableStateOf<String?>(null) }
         var customDateMillis by remember {
             mutableStateOf<Long?>(
-                java.time.LocalDate.now(java.time.ZoneOffset.UTC)
-                    .atStartOfDay(java.time.ZoneOffset.UTC)
-                    .toInstant()
-                    .toEpochMilli()
+                java.time.Instant.now().toEpochMilli()
             )
         }
+
+        val parsedAmount = amount.toBigDecimalOrNull()
         val valid =
             receiptId.isNotBlank() &&
-                    (amount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } == true)
+                    (parsedAmount?.let { it > java.math.BigDecimal.ZERO } == true)
                     && (if (useCustomDate) customDateMillis != null else true)
                     && selectedWarehouse != null
 
@@ -600,7 +614,7 @@ fun ReceiptsAdminScreen() {
                         if (!valid) return@ContentDialog
                         val req = CreateReceiptRequest(
                             receiptId = receiptId.trim(),
-                            receiptType = if (rtIndex == 0) ReceiptType.INWARD else ReceiptType.OUTWARD,
+                            receiptType = ReceiptType.OUTWARD,
                             entityType = EntityType.WAREHOUSE,
                             warehouseId = selectedWarehouse!!.id,
                             amount = amount.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO,
@@ -637,23 +651,20 @@ fun ReceiptsAdminScreen() {
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(8.dp))
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        ComboBox(
-                            placeholder = "Type",
-                            selected = rtIndex,
-                            items = listOf("INWARD", "OUTWARD"),
-                            onSelectionChange = { i, _ -> rtIndex = i })
-                        Spacer(Modifier.weight(1f))
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
 
                         CalendarDatePicker(
                             onChoose = { localDate ->
+                                val now = java.time.LocalDateTime.now()
                                 val ldt = java.time.LocalDateTime.of(
                                     localDate.year,
                                     localDate.monthValue + 1,
                                     localDate.day,
-                                    0, 0, 0
+                                    now.hour,
+                                    now.minute,
+                                    now.second
                                 )
-                                val odt = OffsetDateTime.of(ldt, java.time.ZoneOffset.UTC)
+                                val odt = ldt.atZone(java.time.ZoneId.systemDefault()).toOffsetDateTime()
                                 customDateIso = odt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
                                 customDateMillis = odt.toInstant().toEpochMilli()
                             }
@@ -662,7 +673,7 @@ fun ReceiptsAdminScreen() {
                     if (customDateMillis != null) {
                         Spacer(Modifier.height(6.dp))
                         val label = java.time.Instant.ofEpochMilli(customDateMillis!!)
-                            .atOffset(java.time.ZoneOffset.UTC)
+                            .atZone(java.time.ZoneId.systemDefault())
                             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
                         Text("Selected: $label")
                     }
@@ -674,7 +685,9 @@ fun ReceiptsAdminScreen() {
                                 .replace(Regex("\\.(?=.*\\.)"), "")
                         },
                         header = { Text("Amount") },
-                        isError = touched && (amount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } != true),
+                        isError = touched && (
+                            (amount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } != true)
+                        ),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth())
                     Spacer(Modifier.height(8.dp))
@@ -707,7 +720,7 @@ fun ReceiptsAdminScreen() {
             mutableStateOf(plain)
         }
         var description by remember(editing) { mutableStateOf(editing?.description ?: "") }
-        var rtIndex by remember(editing) { mutableStateOf(if (editing?.receiptType == ReceiptType.INWARD) 0 else 1) }
+        var rtIndex by remember(editing) { mutableStateOf(1) } // Fixed to OUTWARD (1)
         var touched by remember { mutableStateOf(false) }
         var customDateMillis by remember(editing) {
             mutableStateOf(
@@ -736,7 +749,7 @@ fun ReceiptsAdminScreen() {
                         if (!valid || editing?.id == null) return@ContentDialog
                         val req = UpdateReceiptRequest(
                             receiptId = receiptId.trim(),
-                            receiptType = if (rtIndex == 0) ReceiptType.INWARD else ReceiptType.OUTWARD,
+                            receiptType = ReceiptType.OUTWARD,
                             entityType = EntityType.WAREHOUSE,
                             amount = amount.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO,
                             description = description.ifBlank { null },
@@ -765,23 +778,20 @@ fun ReceiptsAdminScreen() {
                         singleLine = true, modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(8.dp))
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        ComboBox(
-                            placeholder = stringResource(Res.string.type), selected = rtIndex,
-                            items = listOf("INWARD", "OUTWARD"),
-                            onSelectionChange = { i, _ -> rtIndex = i })
-
-                        Spacer(Modifier.weight(1f))
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
 
                         CalendarDatePicker(
                             onChoose = { localDate ->
+                                val now = java.time.LocalDateTime.now()
                                 val ldt = java.time.LocalDateTime.of(
                                     localDate.year,
                                     localDate.monthValue + 1,
                                     localDate.day,
-                                    0, 0, 0
+                                    now.hour,
+                                    now.minute,
+                                    now.second
                                 )
-                                val odt = OffsetDateTime.of(ldt, java.time.ZoneOffset.UTC)
+                                val odt = ldt.atZone(java.time.ZoneId.systemDefault()).toOffsetDateTime()
                                 customDateMillis = odt.toInstant().toEpochMilli()
                             }
                         )
@@ -789,7 +799,7 @@ fun ReceiptsAdminScreen() {
                     if (customDateMillis != null) {
                         Spacer(Modifier.height(6.dp))
                         val label = java.time.Instant.ofEpochMilli(customDateMillis!!)
-                            .atOffset(java.time.ZoneOffset.UTC)
+                            .atZone(java.time.ZoneId.systemDefault())
                             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
                         Text("Selected: $label")
                     }
@@ -850,9 +860,14 @@ fun ReceiptsAdminScreen() {
 fun formatDate(s: String?): String {
     if (s.isNullOrBlank()) return ""
     return try {
-        OffsetDateTime.parse(s)
+        val odt = if (s.contains("Z") || s.contains("+") || (s.length > 10 && s.substring(10).contains("-"))) {
+            OffsetDateTime.parse(s)
+        } else {
+            java.time.LocalDateTime.parse(s).atOffset(java.time.ZoneOffset.UTC)
+        }
+        odt.atZoneSameInstant(java.time.ZoneId.systemDefault())
             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
     } catch (_: Exception) {
-        s.take(16)
+        s.take(16).replace("T", " ")
     }
 }

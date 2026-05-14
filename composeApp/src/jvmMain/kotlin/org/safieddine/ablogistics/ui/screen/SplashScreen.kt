@@ -186,7 +186,9 @@ private suspend fun refreshCurrentUser(authManager: AuthManager): Boolean {
                 val fresh: UserDTO? = resp.data
                 if (fresh != null) {
                     authManager.updateCurrentUSer(fresh.fullName, fresh.phoneNumber)
-                    if (!fresh.isAdmin) {
+                    // Auto-select first warehouse for all users (admin and non-admin)
+                    // if none is already persisted from a previous session
+                    if (authManager.getSelectedWarehouse() == null) {
                         authManager.setSelectedWarehouse(fresh.warehouses.firstOrNull())
                     }
                     println("User refreshed successfully: ${fresh.username}")

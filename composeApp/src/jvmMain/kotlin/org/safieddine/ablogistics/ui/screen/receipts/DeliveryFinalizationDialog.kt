@@ -18,6 +18,7 @@ import io.github.composefluent.icons.filled.Checkmark
 import io.github.composefluent.icons.filled.Warning
 import org.safieddine.ablogistics.data.ReceiptResponse
 import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
+import org.safieddine.ablogistics.ui.utils.NumberCommaTransformation
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -29,7 +30,7 @@ fun DeliveryFinalizationDialog(
     onConfirm: (BigDecimal) -> Unit,
     isLoading: Boolean = false
 ) {
-    var dispatchedStr by remember { mutableStateOf(receipt.loadedQuantity?.toString() ?: "") }
+    var dispatchedStr by remember { mutableStateOf(receipt.loadedQuantity?.setScale(2, RoundingMode.HALF_UP)?.toPlainString() ?: "") }
     val loadedQty = receipt.loadedQuantity ?: BigDecimal.ZERO
     val costPrice = receipt.costPrice ?: BigDecimal.ZERO
     
@@ -63,6 +64,7 @@ fun DeliveryFinalizationDialog(
                     value = dispatchedStr,
                     onValueChange = { dispatchedStr = it.filter { ch -> ch.isDigit() || ch == '.' } },
                     header = { Text("Dispatched Liters") },
+                    visualTransformation = NumberCommaTransformation(),
                     modifier = Modifier.fillMaxWidth()
                 )
                 

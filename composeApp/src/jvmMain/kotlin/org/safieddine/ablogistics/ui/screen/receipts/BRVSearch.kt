@@ -3,38 +3,32 @@ package org.safieddine.ablogistics.ui.screen.receipts
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.material.Text
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.composefluent.ExperimentalFluentApi
 import io.github.composefluent.component.AutoSuggestBoxDefaults
 import io.github.composefluent.component.AutoSuggestionBox
 import io.github.composefluent.component.ListItem
-import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
 import kotlinx.coroutines.flow.map
-import org.safieddine.ablogistics.data.CustomerResponse
-import androidx.compose.material.Text
+import org.safieddine.ablogistics.data.BRVDTO
+import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
 
 @OptIn(ExperimentalFluentApi::class)
 @Composable
-fun CustomerSearch(
-    customers: List<CustomerResponse>,
-    onSelected: (CustomerResponse) -> Unit,
+fun BRVSearch(
+    brvs: List<BRVDTO>,
+    onSelected: (BRVDTO) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
     var keyword by remember { mutableStateOf("") }
 
-    data class SuggestItem(val name: String, val description: String, val customer: CustomerResponse)
+    data class SuggestItem(val plate: String, val driver: String, val brv: BRVDTO)
 
-    val flatMapComponents = remember(customers) {
-        customers.map { c -> SuggestItem(name = c.name, description = c.phoneNumber, customer = c) }
+    val flatMapComponents = remember(brvs) {
+        brvs.map { b -> SuggestItem(plate = b.plateNumber, driver = b.driverName ?: "N/A", brv = b) }
     }
 
     AutoSuggestionBox(
@@ -46,7 +40,8 @@ fun CustomerSearch(
             value = keyword,
             onValueChange = { keyword = it; expanded = true },
             shape = AutoSuggestBoxDefaults.textFieldShape(expanded),
-            modifier = Modifier.fillMaxWidth().flyoutAnchor(),
+            placeholder = { Text("Search Plate or Driver") },
+            modifier = Modifier.widthIn(300.dp).flyoutAnchor(),
             singleLine = true
         )
 
@@ -54,8 +49,8 @@ fun CustomerSearch(
             snapshotFlow { keyword }.map { kw ->
                 if (kw.isBlank()) flatMapComponents
                 else flatMapComponents.filter { item ->
-                    item.name.contains(kw, ignoreCase = true) ||
-                            item.description.contains(kw, ignoreCase = true)
+                    item.plate.contains(kw, ignoreCase = true) ||
+                            item.driver.contains(kw, ignoreCase = true)
                 }
             }
         }.collectAsState(flatMapComponents)
@@ -67,11 +62,11 @@ fun CustomerSearch(
                 items(items = searchResult.value) { item ->
                     ListItem(
                         onClick = {
-                            keyword = item.name
+                            keyword = item.plate
                             expanded = false
-                            onSelected(item.customer)
+                            onSelected(item.brv)
                         },
-                        text = { Text(item.name, maxLines = 1) },
+                        text = { Text("${item.plate} - ${item.driver}", maxLines = 1) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -80,4 +75,3 @@ fun CustomerSearch(
         )
     }
 }
-

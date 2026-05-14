@@ -11,6 +11,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -324,7 +325,14 @@ fun ABLogisticsAccentButton(
         onClick = onClick,
         iconOnly = iconOnly,
         contentArrangement = contentArrangement,
-        content = content
+        content = {
+            CompositionLocalProvider(
+                androidx.compose.material.LocalContentColor provides ABLogisticsThemeColors.TextOnBrand,
+                androidx.compose.material3.LocalContentColor provides ABLogisticsThemeColors.TextOnBrand
+            ) {
+                content()
+            }
+        }
     )
 }
 

@@ -38,6 +38,8 @@ data class ProcessLoadRequest(
     val brvId: Long,
     val customerId: Long,
     val warehouseId: Long,
+    val materialType: MaterialType,
+    val material: String? = null,
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val loadedQuantity: BigDecimal,
     @Serializable(with = BigDecimalAsStringSerializer::class)
@@ -46,7 +48,9 @@ data class ProcessLoadRequest(
     val sellingPrice: BigDecimal,
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val brvCost: BigDecimal,
-    val description: String? = null
+    val description: String? = null,
+    val receiptId: String? = null,
+    val createdAtMillis: Long? = null
 )
 
 @Serializable

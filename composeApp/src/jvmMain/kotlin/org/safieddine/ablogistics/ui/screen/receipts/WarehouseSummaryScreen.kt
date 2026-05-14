@@ -39,7 +39,8 @@ import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
 
 @OptIn(ExperimentalFluentApi::class, ExperimentalTime::class)
 @Composable
-fun ColumnScope.WarehouseSummaryScreen() {
+fun WarehouseSummaryScreen() {
+    Column(Modifier.fillMaxSize()) {
     val scope = rememberCoroutineScope()
     val selectedWarehouse by SessionStore.selectedWarehouse.collectAsState()
 
@@ -391,4 +392,5 @@ fun ColumnScope.WarehouseSummaryScreen() {
             if (page < data.totalPages - 1) { page += 1; load() }
         }) { Text(stringResource(Res.string.next)) }
     }
+    } // end Column
 }

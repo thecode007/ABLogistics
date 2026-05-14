@@ -1,5 +1,5 @@
+@file:OptIn(io.github.composefluent.ExperimentalFluentApi::class)
 package org.safieddine.ablogistics.ui.theme
-
 
 import ablogistics.composeapp.generated.resources.Res
 import ablogistics.composeapp.generated.resources.app_title
@@ -12,6 +12,9 @@ import ablogistics.composeapp.generated.resources.role_manager
 import ablogistics.composeapp.generated.resources.united_kingdom
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import io.github.composefluent.ExperimentalFluentApi
+import io.github.composefluent.background.MaterialContainerScope
+import io.github.composefluent.background.MaterialDefaults
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -54,9 +57,12 @@ import io.github.composefluent.icons.regular.Dismiss
 import io.github.composefluent.icons.regular.Maximize
 import io.github.composefluent.icons.regular.SquareMultiple
 import org.jetbrains.compose.resources.painterResource
+import org.safieddine.ablogistics.data.MaterialPriceDTO
+import org.safieddine.ablogistics.data.MaterialType
 import org.safieddine.ablogistics.data.session.SessionStore
-import org.safieddine.ablogistics.data.session.WarehouseFundsStore
 import org.safieddine.ablogistics.ui.screen.receipts.formatLocalized
+import io.github.composefluent.icons.regular.Edit
+import java.math.BigDecimal
 import org.safieddine.ablogistics.ui.screen.receipts.parseLocalizedNumber
 import org.jetbrains.compose.resources.stringResource
 import java.util.Locale
@@ -84,25 +90,23 @@ data class TitleBarState(
 @Composable
 fun FrameWindowScope.TitleBar(
     titleBarState: TitleBarState = TitleBarState(),
+    globalPrices: List<MaterialPriceDTO> = emptyList(),
     onClose: () -> Unit,
     onEdit: () -> Unit,
     onWarehouseExit: () -> Unit,
     onMinimize: () -> Unit,
     onMaximize: () -> Unit,
     isMaximized: Boolean,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onPriceEdit: () -> Unit
 ) {
     WindowDraggableArea {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(TeamsBackground, TeamsBackgroundEnd)
-                    )
-                )
-                .shadow(elevation = 0.dp) // flat, like Teams
+                .background(TeamsBackground.copy(alpha = 0.72f))
+                .shadow(elevation = 0.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxSize(),
@@ -130,75 +134,45 @@ fun FrameWindowScope.TitleBar(
                 Spacer(Modifier.weight(1f))
 
                 // ── Right section: chips, status, language, controls ─────────
+                
+                val fuelPrice = globalPrices.find { it.materialType == MaterialType.FUEL } 
+                    ?: MaterialPriceDTO(MaterialType.FUEL, BigDecimal.ZERO, BigDecimal.ZERO)
+                val dieselPrice = globalPrices.find { it.materialType == MaterialType.DIESEL }
+                    ?: MaterialPriceDTO(MaterialType.DIESEL, BigDecimal.ZERO, BigDecimal.ZERO)
 
-                // Warehouse chip
-                val selectedWarehouse by SessionStore.selectedWarehouse.collectAsState()
-                val totalFunds by WarehouseFundsStore.totalFunds.collectAsState()
+                val displayPrices = listOf(fuelPrice, dieselPrice)
 
-                LaunchedEffect(selectedWarehouse?.id) {
-                    val id = selectedWarehouse?.id ?: return@LaunchedEffect
-                    WarehouseFundsStore.refresh(id)
-                    while (true) {
-                        delay(20_000)
-                        WarehouseFundsStore.refresh(id)
-                    }
-                }
+                displayPrices.forEach { price ->
+                    val icon = if (price.materialType == MaterialType.FUEL) "⛽" else "🚛"
+                    val label = if (price.materialType == MaterialType.FUEL) "Fuel" else "Diesel"
+                    val costFmt = formatLocalized(price.costPrice, Locale.getDefault())
+                    val sellFmt = formatLocalized(price.sellingPrice, Locale.getDefault())
 
-                if (titleBarState.warehouseName.isNotEmpty()) {
-                    TeamsChip {
-                        Icon(
-                            imageVector = Icons.Filled.BuildingFactory,
-                            contentDescription = "Warehouse",
-                            tint = TeamsOnSurface,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(Modifier.width(5.dp))
-                        Text(
-                            text = titleBarState.warehouseName,
-                            color = TeamsOnSurface,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        val locale = Locale.getDefault()
-                        val totalFmt = formatLocalized(
-                            parseLocalizedNumber("%.2f".format(totalFunds.toDouble()), locale), locale
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Box(
-                            modifier = Modifier
-                                .background(TeamsOnSurface40, RoundedCornerShape(10.dp))
-                                .padding(horizontal = 6.dp, vertical = 1.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Filled.ArrowSwap,
-                                    contentDescription = null,
-                                    tint = TeamsOnSurface,
-                                    modifier = Modifier.size(11.dp)
-                                )
-                                Spacer(Modifier.width(3.dp))
-                                Text(totalFmt, color = TeamsOnSurface, fontSize = 11.sp)
-                            }
-                        }
-                        if (titleBarState.isAdmin) {
-                            Spacer(Modifier.width(6.dp))
-                            Icon(
-                                imageVector = Icons.Filled.SignOut,
-                                contentDescription = "Exit warehouse",
-                                tint = TeamsOnSurface,
-                                modifier = Modifier.size(14.dp).clickable { onWarehouseExit() }
-                            )
-                        }
-                    }
+                    PricePill(
+                        icon = icon,
+                        label = label,
+                        cost = costFmt,
+                        selling = sellFmt
+                    )
                     Spacer(Modifier.width(8.dp))
                 }
 
-                // Online / Offline indicator
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 4.dp)
+                IconButton(
+                    onClick = onPriceEdit,
+                    modifier = Modifier.size(24.dp)
                 ) {
-                    Box(
+                    Icon(
+                        imageVector = Icons.Regular.Edit,
+                        contentDescription = "Edit Prices",
+                        tint = TeamsOnSurface70,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+
+                Spacer(Modifier.width(12.dp))
+
+                // Online / Offline indicator
+                Box(
                         modifier = Modifier
                             .size(8.dp)
                             .clip(CircleShape)
@@ -207,16 +181,6 @@ fun FrameWindowScope.TitleBar(
                                 else Color(0xFFE57373)
                             )
                     )
-                    Spacer(Modifier.width(5.dp))
-                    Text(
-                        text = if (titleBarState.isOnline)
-                            stringResource(Res.string.online)
-                        else
-                            stringResource(Res.string.blocked_message),
-                        color = TeamsOnSurface70,
-                        fontSize = 11.sp
-                    )
-                }
 
                 Spacer(Modifier.width(8.dp))
 
@@ -419,6 +383,39 @@ private fun TeamsTitleBarButton(
             contentDescription = contentDescription,
             tint = TeamsOnSurface,
             modifier = Modifier.size(16.dp)
+        )
+    }
+}
+@Composable
+private fun PricePill(
+    icon: String,
+    label: String,
+    cost: String,
+    selling: String
+) {
+    Row(
+        modifier = Modifier
+            .height(30.dp)
+            .clip(RoundedCornerShape(15.dp))
+            .background(Color.White.copy(alpha = 0.6f))
+            .border(1.dp, TeamsOnSurface.copy(alpha = 0.15f), RoundedCornerShape(15.dp))
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(icon, fontSize = 14.sp)
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = "$label:",
+            color = TeamsOnSurface70,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(
+            text = "$cost / $selling",
+            color = TeamsOnSurface,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium
         )
     }
 }
