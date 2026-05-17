@@ -284,8 +284,9 @@ fun main() = application {
                                     }
                                 },
                                 onWareHouseSelected = {
-                                    SessionStore.setSelectedWarehouse(it)
+                                    mainViewModel.setSelectedWarehouse(it)
                                 },
+
                                 onSplashPassed = {
                                     // SessionStore already reflects current user
                                     val token = SessionStore.token.value

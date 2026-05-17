@@ -35,6 +35,7 @@ kotlin {
             implementation("io.ktor:ktor-client-content-negotiation:3.3.1")
             implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.1")
             implementation("io.ktor:ktor-client-logging:3.3.1")
+            implementation("io.ktor:ktor-client-auth:3.3.1")
             implementation("io.ktor:ktor-client-plugins:3.1.1")
 
             // Serialization
@@ -53,8 +54,8 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
             implementation("io.ktor:ktor-client-cio:3.3.1")
+            implementation("com.github.librepdf:openpdf:2.0.3")
             // Ensure kotlinx-datetime is on JVM runtime classpath (Material3 DatePicker)
-
         }
     }
 }

@@ -15,34 +15,13 @@ import org.safieddine.ablogistics.data.WarehouseFundsDTO
 import org.safieddine.ablogistics.data.WarehouseUpdateRequest
 import org.safieddine.ablogistics.data.session.SessionStore
 import org.safieddine.ablogistics.data.config.AppConfig
+import org.safieddine.ablogistics.data.network.HttpClientFactory
 
 object WarehouseService {
 
     private var tokenProvider: TokenProvider = SessionStore
 
-    private val client = HttpClient {
-        install(ContentNegotiation) {
-            json(Json {
-                prettyPrint = true
-                isLenient = true
-                ignoreUnknownKeys = true
-            })
-        }
-        install(HttpTimeout) {
-            requestTimeoutMillis = 15000L
-            connectTimeoutMillis = 15000L
-            socketTimeoutMillis = 15000L
-        }
-        defaultRequest {
-            url(AppConfig.baseUrl)
-            contentType(ContentType.Application.Json)
-            val token = tokenProvider.currentToken()
-            if (!token.isNullOrEmpty()) {
-                header("Authorization", "Bearer $token")
-            }
-            accept(ContentType.Application.Json)
-        }
-    }
+    private val client = HttpClientFactory.httpClient
     suspend fun createWarehouse(request: CreateWarehouseRequest): Result<BaseResponse<WarehouseDTO>> {
         return try {
             val response: BaseResponse<WarehouseDTO> = client.post("warehouses") {

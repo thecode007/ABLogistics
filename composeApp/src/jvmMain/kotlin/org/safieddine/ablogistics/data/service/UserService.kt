@@ -20,6 +20,7 @@ import org.safieddine.ablogistics.data.UpdateUserRequest
 import org.safieddine.ablogistics.data.UserDTO
 import org.safieddine.ablogistics.data.session.SessionStore
 import org.safieddine.ablogistics.data.config.AppConfig
+import org.safieddine.ablogistics.data.network.HttpClientFactory
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -29,33 +30,7 @@ object UserService {
     private var tokenProvider: TokenProvider = SessionStore
 
     // Global reusable HttpClient with JSON + logging
-    private val client = HttpClient {
-        install(ContentNegotiation) {
-            json(Json {
-                prettyPrint = true
-                isLenient = true
-                ignoreUnknownKeys = true
-            })
-        }
-        install(Logging) {
-            level = LogLevel.ALL
-            logger = Logger.DEFAULT
-        }
-        install(HttpTimeout) {
-            requestTimeoutMillis = 15000L
-            connectTimeoutMillis = 15000L
-            socketTimeoutMillis = 15000L
-        }
-        defaultRequest {
-            url(AppConfig.baseUrl)
-            contentType(ContentType.Application.Json)
-            val token = tokenProvider.currentToken()
-            if (!token.isNullOrEmpty()) {
-                header("Authorization", "Bearer $token")
-            }
-            accept(ContentType.Application.Json)
-        }
-    }
+    private val client = HttpClientFactory.httpClient
 
     // --- User Operations ---
     suspend fun blockUser(username: String): BaseResponse<UserDTO> {

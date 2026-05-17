@@ -7,7 +7,7 @@ import java.math.BigDecimal
 enum class ReceiptType { INWARD, OUTWARD, RETURNED }
 
 @Serializable
-enum class EntityType { WAREHOUSE, CUSTOMER, SUPPLIER }
+enum class EntityType { WAREHOUSE, CUSTOMER }
 
 @Serializable
 data class CreateReceiptRequest(
@@ -30,6 +30,7 @@ data class ReceiptResponse(
     val entityType: EntityType,
     val warehouseId: Long,
     val customerId: Long? = null,
+    val customerName: String? = null,
     val supplierId: Long? = null,
     val brvId: Long? = null,
     @Serializable(with = BigDecimalAsStringSerializer::class)
@@ -60,6 +61,10 @@ data class ReceiptResponse(
     val isReturnAdjustment: Boolean,
     val description: String?,
     val materialType: MaterialType? = null,
+    val material: String? = null,
+    val destinationCustomerId: Long? = null,
+    val linkedReceiptId: Long? = null,
+    val brvPlateNumber: String? = null,
     val createdBy: String,
     val createdAt: String?
 )
@@ -75,7 +80,7 @@ data class PageResponse<T>(
 
 @Serializable
 data class UpdateReceiptRequest(
-    val receiptId: String? = null,
+    val receiptId: String,
     val receiptType: ReceiptType,
     val entityType: EntityType,
     @Serializable(with = BigDecimalAsStringSerializer::class)

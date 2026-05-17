@@ -41,6 +41,7 @@ fun CreateLoadScreen() {
     var deliveryCost by remember { mutableStateOf("") }
     var selectedMaterial by remember { mutableStateOf(MaterialType.FUEL) }
     var description by remember { mutableStateOf("") }
+    var receiptId by remember { mutableStateOf("") }
 
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -194,6 +195,17 @@ fun CreateLoadScreen() {
                 )
                 Spacer(Modifier.height(16.dp))
 
+                ABLogisticsTextField(
+                    value = receiptId,
+                    onValueChange = { receiptId = it },
+                    header = { Text("Receipt ID") },
+                    placeholder = { Text("e.g. REC-12345") },
+                    isError = receiptId.isBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(Modifier.height(16.dp))
+
                 // Date Picker
                 Text("Date", style = FluentTheme.typography.bodyStrong)
                 Spacer(Modifier.height(4.dp))
@@ -224,7 +236,7 @@ fun CreateLoadScreen() {
 
                 ABLogisticsAccentButton(
                     modifier = Modifier.fillMaxWidth().height(48.dp),
-                    disabled = isProcessing || selectedCustomer == null || selectedBrv == null || quantity.isBlank(),
+                    disabled = isProcessing || selectedCustomer == null || selectedBrv == null || quantity.isBlank() || receiptId.isBlank(),
                     onClick = {
                         val qty = quantity.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO
                         val cp = costPrice.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO
@@ -246,6 +258,7 @@ fun CreateLoadScreen() {
                             sellingPrice = spTotal,
                             brvCost = dc,
                             description = description.ifBlank { "Load for ${selectedCustomer?.name}" },
+                            receiptId = receiptId.trim(),
                             createdAtMillis = customDateMillis
                         )
 
@@ -261,6 +274,7 @@ fun CreateLoadScreen() {
                                 sellingPrice = ""
                                 deliveryCost = ""
                                 description = ""
+                                receiptId = ""
                                 brvIndex = null
                                 selectedBrv = null
                                 selectedCustomer = null

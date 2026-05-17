@@ -68,16 +68,7 @@ import org.jetbrains.compose.resources.stringResource
 import java.util.Locale
 import kotlinx.coroutines.delay
 
-// ─── Teams 2.0 brand palette (neutral grey bar) ────────────────────────────
-private val TeamsBackground    = Color(0xFFEFEFEF)   // Teams 2.0 light grey
-private val TeamsBackgroundEnd = Color(0xFFE5E5E5)   // slightly deeper grey
-private val TeamsOnSurface     = Color(0xFF242424)   // near-black text
-private val TeamsOnSurface70   = Color(0xFF616161)   // secondary grey text
-private val TeamsOnSurface40   = Color(0x33000000)   // 20% black overlay
-private val TeamsControlHover  = Color(0x18000000)   // 10% black hover
-private val TeamsCloseHover    = Color(0xFFD32F2F)
-private val TeamsAvatarBg      = Color(0xFF6264A7)   // Teams purple avatar
-private val TeamsOnlineDot     = Color(0xFF13A10E)
+// ─── Teams 2.0 brand palette is now centralized in Color.kt ─────────────────
 
 data class TitleBarState(
     val userName: String = "",

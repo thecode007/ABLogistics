@@ -8,6 +8,11 @@ data class LoginRequest(
 )
 
 @Serializable
+data class RefreshTokenRequest(
+    val refreshToken: String
+)
+
+@Serializable
 data class BaseResponse<T>(
     val success: Boolean,
     val message: String,
@@ -27,6 +32,7 @@ data class ErrorDetail(
 @Serializable
 data class LoginData(
     val token: String,
+    val refreshToken: String? = null,
     val user: UserResponse
 )
 

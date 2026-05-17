@@ -20,6 +20,7 @@ object AuthManager {
                 authStorage.saveAuthData(loginData)
                 // Sync session store
                 SessionStore.setToken(loginData.token)
+                SessionStore.setRefreshToken(loginData.refreshToken)
                 SessionStore.setCurrentUser(loginData.user)
             }
         }

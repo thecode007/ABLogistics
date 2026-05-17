@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -54,6 +55,8 @@ fun CustomerScreen() {
     var error by remember { mutableStateOf<String?>(null) }
     var customers by remember { mutableStateOf<List<CustomerResponse>>(emptyList()) }
     var totalFunds by remember { mutableStateOf(java.math.BigDecimal.ZERO) }
+    var totalFuelLiters by remember { mutableStateOf(java.math.BigDecimal.ZERO) }
+    var totalDieselLiters by remember { mutableStateOf(java.math.BigDecimal.ZERO) }
 
     var query by remember { mutableStateOf("") }
 
@@ -77,8 +80,11 @@ fun CustomerScreen() {
         scope.launch {
             val res = CustomerService.list(warehouseId = SessionStore.selectedWarehouse.value?.id ?: 0L)
             if (res.isSuccess) {
-                customers = res.getOrNull()?.data?.customers ?: emptyList()
-                totalFunds = res.getOrNull()?.data?.totalFundsSum ?: java.math.BigDecimal.ZERO
+                val summary = res.getOrNull()?.data
+                customers = summary?.customers ?: emptyList()
+                totalFunds = summary?.totalFundsSum ?: java.math.BigDecimal.ZERO
+                totalFuelLiters = summary?.totalFuelLitersSum ?: java.math.BigDecimal.ZERO
+                totalDieselLiters = summary?.totalDieselLitersSum ?: java.math.BigDecimal.ZERO
             } else {
                 error = res.exceptionOrNull()?.message
             }
@@ -167,17 +173,27 @@ fun CustomerScreen() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        stringResource(Res.string.name), Modifier.weight(1.8f),
+                        stringResource(Res.string.name), Modifier.weight(1.5f),
                         style = FluentTheme.typography.title.copy(fontSize = 14.sp),
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        stringResource(Res.string.phone_number), Modifier.weight(1.4f),
+                        stringResource(Res.string.phone_number), Modifier.weight(1.2f),
                         style = FluentTheme.typography.title.copy(fontSize = 14.sp),
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        stringResource(Res.string.location), Modifier.weight(1.2f),
+                        stringResource(Res.string.location), Modifier.weight(1.0f),
+                        style = FluentTheme.typography.title.copy(fontSize = 14.sp),
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        "Fuel (L)", Modifier.weight(0.7f),
+                        style = FluentTheme.typography.title.copy(fontSize = 14.sp),
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        "Diesel (L)", Modifier.weight(0.7f),
                         style = FluentTheme.typography.title.copy(fontSize = 14.sp),
                         textAlign = TextAlign.Center
                     )
@@ -218,11 +234,30 @@ fun CustomerScreen() {
                             .padding(vertical = 4.dp, horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(c.name, textAlign = TextAlign.Center, modifier = Modifier.weight(1.8f))
-                        Text(c.phoneNumber, textAlign = TextAlign.Center, modifier = Modifier.weight(1.4f))
-                        Text(c.location, textAlign = TextAlign.Center, modifier = Modifier.weight(1.2f))
+                        Text(c.name, textAlign = TextAlign.Center, modifier = Modifier.weight(1.5f))
+                        Text(c.phoneNumber, textAlign = TextAlign.Center, modifier = Modifier.weight(1.2f))
+                        Text(c.location, textAlign = TextAlign.Center, modifier = Modifier.weight(1.0f))
+                        
+                        // Fuel Liters
                         Text(
-                            formatLocalized(c.totalFunds, Locale.getDefault()),
+                            formatLocalized(c.totalFuelLiters, Locale.getDefault()),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.weight(0.7f),
+                            color = Color(0xFF0078D4),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        
+                        // Diesel Liters
+                        Text(
+                            formatLocalized(c.totalDieselLiters, Locale.getDefault()),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.weight(0.7f),
+                            color = Color(0xFF8B4513),
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        Text(
+                            formatLocalized(c.totalFunds.abs(), Locale.getDefault()),
                             textAlign = TextAlign.Center,
                             modifier = Modifier.weight(1f),
                             fontWeight = FontWeight.SemiBold,
@@ -272,19 +307,49 @@ fun CustomerScreen() {
             color = FluentTheme.colors.background.mica.base,
             thickness = 1.dp
         )
-        Row(Modifier.fillMaxWidth()) {
+        val sumFuel = visibleCustomers.fold(java.math.BigDecimal.ZERO) { acc: java.math.BigDecimal, c: CustomerResponse -> acc.add(c.totalFuelLiters) }
+        val sumDiesel = visibleCustomers.fold(java.math.BigDecimal.ZERO) { acc: java.math.BigDecimal, c: CustomerResponse -> acc.add(c.totalDieselLiters) }
+        val sumFunds = visibleCustomers.fold(java.math.BigDecimal.ZERO) { acc: java.math.BigDecimal, c: CustomerResponse -> acc.add(c.totalFunds) }
+
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Spacer(
-                Modifier.weight(1.8f),
-            )
-            Spacer(
-                Modifier.weight(1.4f),
+                Modifier.weight(1.5f),
             )
             Spacer(
                 Modifier.weight(1.2f),
             )
+            Spacer(
+                Modifier.weight(1.0f),
+            )
+            
+            // Fuel Summary Box
+            Box(
+                Modifier.weight(0.7f).background(Color(0xFFADD8E6).copy(alpha = 0.3f), RoundedCornerShape(4.dp)).padding(4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    formatLocalized(sumFuel, Locale.getDefault()) + " L",
+                    color = Color(0xFF0078D4),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(Modifier.width(4.dp))
+            // Diesel Summary Box
+            Box(
+                Modifier.weight(0.7f).background(Color(0xFFD2B48C).copy(alpha = 0.3f), RoundedCornerShape(4.dp)).padding(4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    formatLocalized(sumDiesel, Locale.getDefault()) + " L",
+                    color = Color(0xFF8B4513),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
             Text(
-                formatLocalized(totalFunds, Locale.getDefault()),
+                formatLocalized(sumFunds.abs(), Locale.getDefault()),
                 Modifier.weight(1f),
                 color = FluentTheme.colors.fillAccent.default,
                 fontSize = 20.sp,

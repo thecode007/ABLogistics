@@ -49,7 +49,7 @@ data class ProcessLoadRequest(
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val brvCost: BigDecimal,
     val description: String? = null,
-    val receiptId: String? = null,
+    val receiptId: String,
     val createdAtMillis: Long? = null
 )
 

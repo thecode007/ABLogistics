@@ -67,14 +67,11 @@ fun LoginScreen(
                         onNavigateToMain(AppScreen.Blocked, null)
                         return@LaunchedEffect
                     }
-                    if (event.loginData.user.isAdmin()) {
-                        onNavigateToMain(AppScreen.Admin, null)
-                    } else {
-                        onNavigateToMain(
-                            AppScreen.Dashboard,
-                            event.loginData.user.warehouses.firstOrNull()
-                        )
-                    }
+                    onNavigateToMain(
+                        if (event.loginData.user.isAdmin()) AppScreen.Admin else AppScreen.Dashboard,
+                        event.loginData.user.warehouses.firstOrNull()
+                    )
+
                     viewModel.clearNavigationEvent()
                 }
             }

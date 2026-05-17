@@ -31,12 +31,20 @@ data class CustomerResponse(
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val totalFunds: java.math.BigDecimal,
     val warehouseId: Long,
-    val warehouseName: String
+    val warehouseName: String,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalFuelLiters: java.math.BigDecimal = java.math.BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalDieselLiters: java.math.BigDecimal = java.math.BigDecimal.ZERO
 )
 
 @Serializable
 data class CustomersListResponse(
     val customers: List<CustomerResponse> = emptyList(),
     @Serializable(with = BigDecimalAsStringSerializer::class)
-    val totalFundsSum: java.math.BigDecimal = java.math.BigDecimal.ZERO
+    val totalFundsSum: java.math.BigDecimal = java.math.BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalFuelLitersSum: java.math.BigDecimal = java.math.BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalDieselLitersSum: java.math.BigDecimal = java.math.BigDecimal.ZERO
 )

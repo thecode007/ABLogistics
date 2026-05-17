@@ -224,7 +224,7 @@ fun ReceiptsCustomerScreen() {
                 }
 
                 Spacer(Modifier.width(6.dp))
-                val balance = totalOutbound.minus(totalInbound)
+                val balance = (totalOutbound.minus(totalInbound)).abs()
                 SubtleButton(
                     iconOnly = true,
                     onClick = { showForm = true },
@@ -270,12 +270,12 @@ fun ReceiptsCustomerScreen() {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         InboundArrow(amount = totalOutbound.toPlainString())
-                        val balance = totalOutbound.minus(totalInbound)
+                        val balance = (totalOutbound.minus(totalInbound)).abs()
                         val locale = Locale.getDefault()
                         val formattedValue = formatLocalized(balance, locale)
                         Text(
                             text = formattedValue,
-                            color = if (balance > java.math.BigDecimal.ZERO) FluentTheme.colors.system.critical else FluentTheme.colors.system.success,
+                            color = if (totalOutbound > totalInbound) FluentTheme.colors.system.critical else FluentTheme.colors.system.success,
                             fontWeight = FontWeight.SemiBold
                         )
                         OutboundArrow(amount = totalInbound.toPlainString())
@@ -399,9 +399,12 @@ fun ReceiptsCustomerScreen() {
                                 statusColor = FluentTheme.colors.system.attention
 
                             // Negate to show debt-balance perspective: OUTWARD increases the debt (positive)
-                            val displayBefore = r.beforeImpactFunds.negate()
-                            val displayAfter = r.afterImpactFunds.negate()
-                            val icon = if (displayAfter > displayBefore) {
+                            val rawBefore = r.beforeImpactFunds.negate()
+                            val rawAfter = r.afterImpactFunds.negate()
+                            val displayBefore = rawBefore.abs()
+                            val displayAfter = rawAfter.abs()
+                            
+                            val icon = if (rawAfter > rawBefore) {
                                 Icons.Filled.ArrowTrending
                             } else
                                 Icons.Filled.ArrowTrendingDown
@@ -457,10 +460,10 @@ fun ReceiptsCustomerScreen() {
                                 Text(formatDate(r.createdAt), Modifier.weight(1.2f), textAlign = TextAlign.Center)
 
                                 // beforeColor: neutral for zero/paid, critical if there's existing debt
-                                val previousColor = if (displayBefore > java.math.BigDecimal.ZERO)
+                                val previousColor = if (rawBefore > java.math.BigDecimal.ZERO)
                                     FluentTheme.colors.system.critical else Black
                                 // afterColor: critical if debt increased, success if it decreased
-                                val afterColor = if (displayAfter > displayBefore)
+                                val afterColor = if (rawAfter > rawBefore)
                                     FluentTheme.colors.system.critical else FluentTheme.colors.system.success
 
                                 Row(

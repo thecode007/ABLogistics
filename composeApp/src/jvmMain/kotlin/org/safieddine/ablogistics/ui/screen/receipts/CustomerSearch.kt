@@ -20,13 +20,22 @@ import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
 import kotlinx.coroutines.flow.map
 import org.safieddine.ablogistics.data.CustomerResponse
 import androidx.compose.material.Text
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import io.github.composefluent.icons.Icons
+import io.github.composefluent.icons.regular.Dismiss
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.RowScope
 
 @OptIn(ExperimentalFluentApi::class)
 @Composable
 fun CustomerSearch(
     customers: List<CustomerResponse>,
     onSelected: (CustomerResponse) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    placeholder: String = "Search Customer",
+    onClear: (() -> Unit)? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
     var keyword by remember { mutableStateOf("") }
@@ -44,10 +53,26 @@ fun CustomerSearch(
     ) {
         ABLogisticsTextField(
             value = keyword,
-            onValueChange = { keyword = it; expanded = true },
+            onValueChange = { input -> keyword = input; expanded = true },
             shape = AutoSuggestBoxDefaults.textFieldShape(expanded),
             modifier = Modifier.fillMaxWidth().flyoutAnchor(),
-            singleLine = true
+            singleLine = true,
+            enabled = enabled,
+            placeholder = { Text(placeholder) },
+            trailing = if (keyword.isNotEmpty() && onClear != null) {
+                {
+                    IconButton(onClick = {
+                        keyword = ""
+                        onClear()
+                    }) {
+                        Icon(
+                            Icons.Default.Dismiss,
+                            contentDescription = "Clear",
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            } else null
         )
 
         val searchResult = remember(flatMapComponents) {

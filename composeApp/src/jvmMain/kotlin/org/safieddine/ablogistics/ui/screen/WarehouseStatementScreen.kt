@@ -163,7 +163,7 @@ fun WarehouseStatementScreen(
                     if (startBalance != null) {
                         val startLabel = if (fromStr != null) "Balance at $fromStr" else "Balance at start"
                         TableRow(
-                            cells = listOf("", "", startLabel, "", "", formatLocalized(startBalance!!)),
+                            cells = listOf("", "", startLabel, "", "", formatLocalized(startBalance!!.abs())),
                             weights = listOf(0.9f, 1.4f, 3.8f, 1.6f, 1.6f, 2.2f),
                             withVerticalDividers = true
                         )
@@ -184,7 +184,7 @@ fun WarehouseStatementScreen(
                                 r.description ?: "",
                                 if (debit > java.math.BigDecimal.ZERO) formatLocalized(debit) else "",
                                 if (credit > java.math.BigDecimal.ZERO) formatLocalized(credit) else "",
-                                formatLocalized(r.afterImpactFunds)
+                                formatLocalized(r.afterImpactFunds.abs())
                             ),
                             weights = listOf(0.9f, 1.4f, 3.8f, 1.6f, 1.6f, 2.2f),
                             withVerticalDividers = true
@@ -197,7 +197,7 @@ fun WarehouseStatementScreen(
                     if (endBalance != null) {
                         val endLabel = if (toStr != null) "Balance at $toStr" else "Balance at end"
                         TableRow(
-                            cells = listOf("", "", endLabel, "", "", formatLocalized(endBalance!!)),
+                            cells = listOf("", "", endLabel, "", "", formatLocalized(endBalance!!.abs())),
                             weights = listOf(0.9f, 1.4f, 3.8f, 1.6f, 1.6f, 2.2f),
                             withVerticalDividers = true
                         )

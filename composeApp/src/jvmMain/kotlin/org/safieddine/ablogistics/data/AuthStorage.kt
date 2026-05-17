@@ -12,6 +12,7 @@ class AuthStorage {
 
     fun saveAuthData(loginData: LoginData) {
         preferences.put("auth_token", loginData.token)
+        loginData.refreshToken?.let { preferences.put("refresh_token", it) }
         preferences.put("user_data", json.encodeToString(loginData.user))
         preferences.putBoolean("is_logged_in", true)
         preferences.putLong("login_timestamp", System.currentTimeMillis())
@@ -47,6 +48,10 @@ class AuthStorage {
         return preferences.get("auth_token", null)
     }
 
+    fun getRefreshToken(): String? {
+        return preferences.get("refresh_token", null)
+    }
+
     fun getUser(): UserResponse? {
         return try {
             val userJson = preferences.get("user_data", null)
@@ -63,6 +68,7 @@ class AuthStorage {
 
     fun clearAuthData() {
         preferences.remove("auth_token")
+        preferences.remove("refresh_token")
         preferences.remove("user_data")
         preferences.remove("warehouse_data")
         preferences.remove("is_logged_in")

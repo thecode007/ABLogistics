@@ -16,3 +16,15 @@ val TertiaryGray = Color(0xFF9E9E9E)
 val BackgroundLight = Color(0xFFFAFAFA)
 val SurfaceLight = Color(0xFFFFFFFF)
 val ErrorRed = Color(0xFFB00020)
+
+// Teams 2.0 brand palette
+val TeamsBackground    = Color(0xFFEFEFEF)   // Teams 2.0 light grey
+val TeamsBackgroundEnd = Color(0xFFE5E5E5)   // slightly deeper grey
+val TeamsOnSurface     = Color(0xFF242424)   // near-black text
+val TeamsOnSurface70   = Color(0xFF616161)   // secondary grey text
+val TeamsOnSurface40   = Color(0x33000000)   // 20% black overlay
+val TeamsControlHover  = Color(0x18000000)   // 10% black hover
+val TeamsCloseHover    = Color(0xFFD32F2F)
+val TeamsAvatarBg      = Color(0xFF6264A7)   // Teams purple avatar
+val TeamsOnlineDot     = Color(0xFF13A10E)
+

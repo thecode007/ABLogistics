@@ -30,7 +30,9 @@ import io.github.composefluent.icons.regular.ArrowCounterclockwise
 import io.github.composefluent.icons.regular.DocumentTableTruck
 import io.github.composefluent.icons.regular.LockClosed
 import io.github.composefluent.icons.filled.Pen
+import io.github.composefluent.icons.filled.Delete
 import org.safieddine.ablogistics.ui.utils.NumberCommaTransformation
+import org.safieddine.ablogistics.ui.utils.PdfExporter
 import org.safieddine.ablogistics.data.*
 import org.safieddine.ablogistics.data.session.SessionStore
 import org.safieddine.ablogistics.ui.screen.adminScreen.UserTableShimmerRow
@@ -46,7 +48,6 @@ import java.time.format.DateTimeFormatter
 fun DirectLoadEntryScreen(viewModel: DirectLoadViewModel = remember { DirectLoadViewModel() }) {
     val selectedWarehouse by SessionStore.selectedWarehouse.collectAsState()
     val customers by viewModel.customers.collectAsState()
-    val suppliers by viewModel.suppliers.collectAsState()
     val brvs by viewModel.brvs.collectAsState()
     val loads by viewModel.loads.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -68,20 +69,22 @@ fun DirectLoadEntryScreen(viewModel: DirectLoadViewModel = remember { DirectLoad
             Modifier.fillMaxWidth().padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                "Load Management",
-                style = FluentTheme.typography.title,
-                modifier = Modifier.padding(start = 8.dp)
-            )
-            
-            Spacer(Modifier.width(16.dp))
-            
             ABLogisticsTextField(
                 modifier = Modifier.width(300.dp),
                 value = searchQuery,
                 onValueChange = { viewModel.onSearchQueryChanged(it) },
                 singleLine = true,
                 placeholder = { Text("Search by Receipt ID") }
+            )
+            
+            Spacer(Modifier.width(12.dp))
+
+            CustomerSearch(
+                customers = customers,
+                onSelected = { viewModel.onCustomerFilterChanged(it, selectedWarehouse?.id ?: 0L) },
+                modifier = Modifier.width(300.dp),
+                placeholder = "Filter by Customer",
+                onClear = { viewModel.onCustomerFilterChanged(null, selectedWarehouse?.id ?: 0L) }
             )
 
             Spacer(Modifier.weight(1f))
@@ -92,7 +95,10 @@ fun DirectLoadEntryScreen(viewModel: DirectLoadViewModel = remember { DirectLoad
             
             Spacer(Modifier.width(6.dp))
             
-            ABLogisticsSubtleButton(iconOnly = true, onClick = { showAddDialog = true }) {
+            ABLogisticsSubtleButton(iconOnly = true, onClick = { 
+                viewModel.prepareCreate()
+                showAddDialog = true 
+            }) {
                 Icon(Icons.Regular.DocumentTableTruck, contentDescription = "Add Load")
             }
         }
@@ -151,11 +157,10 @@ fun DirectLoadEntryScreen(viewModel: DirectLoadViewModel = remember { DirectLoad
                             .padding(vertical = 8.dp, horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                            TableHeader("Date", Modifier.weight(1.2f))
-                            TableHeader("Receipt ID", Modifier.weight(1f))
-                            TableHeader("Material", Modifier.weight(0.8f))
+                            TableHeader("Date", Modifier.weight(1.5f))
+                            TableHeader("Receipt ID", Modifier.weight(1.2f))
                             TableHeader("BRV", Modifier.weight(1f))
-                            TableHeader("Customer", Modifier.weight(1.5f))
+                            TableHeader("Customer", Modifier.weight(1.8f))
                             TableHeader("Loaded", Modifier.weight(1f))
                             TableHeader("Dispatched", Modifier.weight(1f))
                             TableHeader("Status", Modifier.weight(1f))
@@ -183,7 +188,9 @@ fun DirectLoadEntryScreen(viewModel: DirectLoadViewModel = remember { DirectLoad
                                 onEdit = { 
                                     viewModel.prepareEdit(it)
                                     showAddDialog = true
-                                }
+                                },
+                                onReverse = { viewModel.reverseFinalization(selectedWarehouse?.id ?: 0L, it.id) },
+                                onDelete = { viewModel.deleteLoad(selectedWarehouse?.id ?: 0L, it.id) }
                             )
                             Divider(
                                 color = FluentTheme.colors.background.mica.base.copy(alpha = 0.15f),
@@ -205,7 +212,7 @@ fun DirectLoadEntryScreen(viewModel: DirectLoadViewModel = remember { DirectLoad
             closeButtonText = "Cancel",
             onButtonClick = { btn ->
                 if (btn == ContentDialogButton.Primary) {
-                    if (!isLoading && viewModel.selectedCustomer != null && viewModel.selectedBrv != null) {
+                    if (!isLoading && viewModel.selectedCustomer != null && viewModel.selectedBrv != null && viewModel.receiptId.isNotBlank()) {
                         if (viewModel.isEditMode) {
                             viewModel.updateLoad(selectedWarehouse?.id ?: 0L)
                         } else {
@@ -255,28 +262,37 @@ fun TableHeader(text: String, modifier: Modifier) {
 }
 
 @Composable
-fun LoadRow(load: ReceiptResponse, onFinalize: (ReceiptResponse) -> Unit, onEdit: (ReceiptResponse) -> Unit) {
+fun LoadRow(
+    load: ReceiptResponse,
+    onFinalize: (ReceiptResponse) -> Unit,
+    onEdit: (ReceiptResponse) -> Unit,
+    onReverse: (ReceiptResponse) -> Unit,
+    onDelete: (ReceiptResponse) -> Unit
+) {
     val isFinalized = load.dispatchedQuantity != null && load.dispatchedQuantity != BigDecimal.ZERO
     
+    val rowBg = when (load.materialType) {
+        MaterialType.DIESEL -> Color(0xFFD2B48C).copy(alpha = 0.25f)
+        MaterialType.FUEL -> Color(0xFFADD8E6).copy(alpha = 0.25f)
+        else -> Color.Transparent
+    }
+
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 12.dp),
+        Modifier
+            .fillMaxWidth()
+            .background(rowBg)
+            .padding(vertical = 12.dp, horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             formatDate(load.createdAt),
-            Modifier.weight(1.2f),
+            Modifier.weight(1.5f),
             textAlign = TextAlign.Center,
             style = FluentTheme.typography.caption
         )
         Text(
             load.receiptId ?: "-",
-            Modifier.weight(1f),
-            textAlign = TextAlign.Center,
-            style = FluentTheme.typography.bodyStrong.copy(fontSize = 12.sp)
-        )
-        Text(
-            load.materialType?.name ?: "-",
-            Modifier.weight(0.8f),
+            Modifier.weight(1.2f),
             textAlign = TextAlign.Center,
             style = FluentTheme.typography.bodyStrong.copy(fontSize = 12.sp)
         )
@@ -287,8 +303,8 @@ fun LoadRow(load: ReceiptResponse, onFinalize: (ReceiptResponse) -> Unit, onEdit
             style = FluentTheme.typography.bodyStrong
         )
         Text(
-            load.description?.substringBefore(":") ?: "N/A",
-            Modifier.weight(1.5f),
+            (load.customerName ?: "N/A"),
+            Modifier.weight(1.8f),
             textAlign = TextAlign.Center,
             style = FluentTheme.typography.body
         )
@@ -335,7 +351,41 @@ fun LoadRow(load: ReceiptResponse, onFinalize: (ReceiptResponse) -> Unit, onEdit
                         Icon(Icons.Filled.Pen, contentDescription = "Edit", modifier = Modifier.size(16.dp))
                     }
                 } else {
-                    Icon(Icons.Default.LockClosed, contentDescription = "Finalized", tint = FluentTheme.colors.text.accent.secondary, modifier = Modifier.size(16.dp))
+                    ABLogisticsSubtleButton(
+                        onClick = { onEdit(load) },
+                        modifier = Modifier.height(28.dp),
+                        iconOnly = true
+                    ) {
+                        Icon(Icons.Filled.Pen, contentDescription = "Edit Payments", modifier = Modifier.size(16.dp))
+                    }
+                    Spacer(Modifier.width(6.dp))
+                    ABLogisticsSubtleButton(
+                        onClick = { onReverse(load) },
+                        modifier = Modifier.height(28.dp),
+                        iconOnly = true
+                    ) {
+                        Icon(Icons.Default.ArrowCounterclockwise, contentDescription = "Undo Finalize", modifier = Modifier.size(16.dp), tint = FluentTheme.colors.system.attention)
+                    }
+                }
+                
+                if (!isFinalized) {
+                    Spacer(Modifier.width(6.dp))
+                    ABLogisticsSubtleButton(
+                        onClick = { onDelete(load) },
+                        modifier = Modifier.height(28.dp),
+                        iconOnly = true
+                    ) {
+                        Icon(Icons.Filled.Delete, contentDescription = "Delete Load", modifier = Modifier.size(16.dp), tint = FluentTheme.colors.system.critical)
+                    }
+                }
+                
+                Spacer(Modifier.width(6.dp))
+                ABLogisticsSubtleButton(
+                    onClick = { PdfExporter.generateLoadInvoice(load) },
+                    modifier = Modifier.height(28.dp),
+                    iconOnly = true
+                ) {
+                    Icon(Icons.Filled.Receipt, contentDescription = "Export PDF", modifier = Modifier.size(16.dp), tint = FluentTheme.colors.system.success)
                 }
             }
         }
@@ -356,7 +406,8 @@ fun LoadEntryForm(
                 CustomerSearch(
                     customers = customers,
                     onSelected = { viewModel.selectedCustomer = it },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !viewModel.isPaymentOnlyEdit
                 )
             }
         }
@@ -368,7 +419,8 @@ fun LoadEntryForm(
         BRVSearch(
             brvs = brvs,
             onSelected = { viewModel.selectedBrv = it },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !viewModel.isPaymentOnlyEdit
         )
         Text("Material Type", style = FluentTheme.typography.bodyStrong)
         Spacer(Modifier.height(8.dp))
@@ -377,14 +429,16 @@ fun LoadEntryForm(
                 if (viewModel.selectedMaterial == type) {
                     ABLogisticsAccentButton(
                         onClick = { viewModel.onMaterialChanged(type) },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        disabled = viewModel.isPaymentOnlyEdit
                     ) {
                         Text(type.name)
                     }
                 } else {
                     ABLogisticsSubtleButton(
                         onClick = { viewModel.onMaterialChanged(type) },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        disabled = viewModel.isPaymentOnlyEdit
                     ) {
                         Text(type.name)
                     }
@@ -405,7 +459,8 @@ fun LoadEntryForm(
                 header = { Text("Loaded Quantity (L)") },
                 visualTransformation = NumberCommaTransformation(),
                 modifier = Modifier.weight(1f),
-                singleLine = true
+                singleLine = true,
+                enabled = !viewModel.isPaymentOnlyEdit
             )
             Spacer(Modifier.width(16.dp))
             ABLogisticsTextField(
@@ -417,7 +472,8 @@ fun LoadEntryForm(
                 header = { Text("Cost Price / L") },
                 visualTransformation = NumberCommaTransformation(),
                 modifier = Modifier.weight(1f),
-                singleLine = true
+                singleLine = true,
+                enabled = !viewModel.isPaymentOnlyEdit
             )
         }
         
@@ -433,7 +489,8 @@ fun LoadEntryForm(
                 header = { Text("Selling Price / L") },
                 visualTransformation = NumberCommaTransformation(),
                 modifier = Modifier.weight(1f),
-                singleLine = true
+                singleLine = true,
+                enabled = !viewModel.isPaymentOnlyEdit
             )
             Spacer(Modifier.width(16.dp))
             ABLogisticsTextField(
@@ -445,7 +502,8 @@ fun LoadEntryForm(
                 header = { Text("Delivery Cost") },
                 visualTransformation = NumberCommaTransformation(),
                 modifier = Modifier.weight(1f),
-                singleLine = true
+                singleLine = true,
+                enabled = !viewModel.isPaymentOnlyEdit
             )
         }
         
@@ -456,7 +514,8 @@ fun LoadEntryForm(
             onValueChange = { viewModel.description = it },
             header = { Text("Description") },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            singleLine = true,
+            enabled = !viewModel.isPaymentOnlyEdit
         )
         
         Spacer(Modifier.height(16.dp))
@@ -464,10 +523,12 @@ fun LoadEntryForm(
         ABLogisticsTextField(
             value = viewModel.receiptId,
             onValueChange = { viewModel.receiptId = it },
-            header = { Text("Receipt ID (Optional)") },
+            header = { Text("Receipt ID") },
             placeholder = { Text("e.g. REC-12345") },
+            isError = viewModel.receiptId.isBlank(),
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            singleLine = true,
+            enabled = !viewModel.isPaymentOnlyEdit
         )
         
         Spacer(Modifier.height(16.dp))

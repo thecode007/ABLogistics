@@ -19,8 +19,9 @@ import io.github.composefluent.icons.filled.PeopleMoney
 import io.github.composefluent.icons.filled.Receipt
 import io.github.composefluent.icons.filled.VehicleTruckProfile
 import io.github.composefluent.icons.regular.*
+import androidx.compose.ui.unit.dp
+
 import org.jetbrains.compose.resources.stringResource
-import org.safieddine.ablogistics.ui.screen.DistributorScreen
 import org.safieddine.ablogistics.ui.screen.SettingsScreen
 import org.safieddine.ablogistics.ui.screen.customers.CustomerScreen
 import org.safieddine.ablogistics.ui.screen.fleet.FleetScreen
@@ -28,6 +29,19 @@ import org.safieddine.ablogistics.ui.screen.receipts.DirectLoadEntryScreen
 import org.safieddine.ablogistics.ui.screen.receipts.ReceiptsAdminScreen
 import org.safieddine.ablogistics.ui.screen.receipts.ReceiptsCustomerScreen
 import ablogistics.composeapp.generated.resources.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.shape.RoundedCornerShape
+import org.safieddine.ablogistics.ui.theme.BrandingWhite
+import org.safieddine.ablogistics.ui.theme.TeamsBackground
+import org.safieddine.ablogistics.ui.screen.RailScreen
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.ColumnScope
+import io.github.composefluent.icons.filled.BuildingFactory
+import io.github.composefluent.icons.regular.Home
+
 
 data class NavigationItem(
     val title: String,
@@ -46,7 +60,6 @@ sealed class AppScreen(val title: String) {
     object ReceiptsCustomer : AppScreen("Customer Receipts")
     object Splash : AppScreen("Splash")
     object Login : AppScreen("Login")
-    object Distributors : AppScreen("Suppliers")
     object Settings : AppScreen("Settings")
     object Fleet : AppScreen("Fleet Tracking")
     object DirectLoad : AppScreen("Direct Load")
@@ -60,13 +73,20 @@ fun TeamsNavigationRail() {
     val navigationState = rememberNavigationState()
 
     NavigationView(
-        modifier = Modifier,
+        modifier = Modifier.background(TeamsBackground),
         displayMode = NavigationDisplayMode.Left,
         state = navigationState,
-        color = Color.Transparent,
         border = null,
         menuItems = {
-  
+ 
+             // Dashboard
+            menuItem(
+                selected = selectedScreen is AppScreen.Dashboard,
+                onClick = { selectedScreen = AppScreen.Dashboard },
+                text = { Text("Dashboard") },
+                icon = { Icon(imageVector = Icons.Regular.Home, contentDescription = "Dashboard") }
+            )
+ 
             // Fleet
             menuItem(
                 selected = selectedScreen is AppScreen.Fleet,
@@ -90,6 +110,7 @@ fun TeamsNavigationRail() {
                 text = { Text(stringResource(Res.string.nav_customers)) },
                 icon = { Icon(imageVector = Icons.Filled.PeopleCommunity, contentDescription = "Customers") }
             )
+
 
 
             // Financials — expandable group with nested SideNavItems
@@ -128,17 +149,22 @@ fun TeamsNavigationRail() {
             )
         }
     ) {
-        // Content pane
-        when (selectedScreen) {
-            is AppScreen.Dashboard -> DashboardScreen()
-            is AppScreen.Customers -> CustomerScreen()
-            is AppScreen.Distributors -> DistributorScreen()
-            is AppScreen.Settings -> SettingsScreen()
-            is AppScreen.Fleet -> FleetScreen()
-            is AppScreen.DirectLoad -> DirectLoadEntryScreen()
-            is AppScreen.ReceiptsCustomer -> ReceiptsCustomerScreen()
-            is AppScreen.Admin -> ReceiptsAdminScreen()
-            else -> {}
+        // Content pane - Wrapped in a styled container for the Teams 2.0 layered look
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BrandingWhite, shape = RoundedCornerShape(topStart = 8.dp))
+        ) {
+            when (selectedScreen) {
+                is AppScreen.Dashboard -> RailScreen("Dashboard", Icons.Regular.Home) { DashboardScreen() }
+                is AppScreen.Customers -> RailScreen("Customers", Icons.Filled.PeopleCommunity) { CustomerScreen() }
+                is AppScreen.Settings -> RailScreen("Settings", Icons.Regular.Settings) { SettingsScreen() }
+                is AppScreen.Fleet -> RailScreen("Fleet Tracking", Icons.Filled.VehicleTruckProfile) { FleetScreen() }
+                is AppScreen.DirectLoad -> RailScreen("Direct Load", Icons.Regular.DocumentTableTruck) { DirectLoadEntryScreen() }
+                is AppScreen.ReceiptsCustomer -> RailScreen("Customer Receipts", Icons.Regular.Receipt) { ReceiptsCustomerScreen() }
+                is AppScreen.Admin -> RailScreen("Admin", Icons.Filled.Receipt) { ReceiptsAdminScreen() }
+                else -> {}
+            }
         }
     }
 }

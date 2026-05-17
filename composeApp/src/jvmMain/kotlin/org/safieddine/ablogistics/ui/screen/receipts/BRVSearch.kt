@@ -20,7 +20,8 @@ import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
 fun BRVSearch(
     brvs: List<BRVDTO>,
     onSelected: (BRVDTO) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     var expanded by remember { mutableStateOf(false) }
     var keyword by remember { mutableStateOf("") }
@@ -38,11 +39,12 @@ fun BRVSearch(
     ) {
         ABLogisticsTextField(
             value = keyword,
-            onValueChange = { keyword = it; expanded = true },
+            onValueChange = { input -> keyword = input; expanded = true },
             shape = AutoSuggestBoxDefaults.textFieldShape(expanded),
             placeholder = { Text("Search Plate or Driver") },
             modifier = Modifier.widthIn(300.dp).flyoutAnchor(),
-            singleLine = true
+            singleLine = true,
+            enabled = enabled
         )
 
         val searchResult = remember(flatMapComponents) {

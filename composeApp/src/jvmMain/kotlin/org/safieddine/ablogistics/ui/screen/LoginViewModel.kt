@@ -58,9 +58,8 @@ class LoginViewModel(
                     _uiState.value = currentState.copy(
                         isLoading = false
                     )
-                    if (!loginData.user.isAdmin()) {
-                        SessionStore.setSelectedWarehouse(loginData.user.warehouses.firstOrNull())
-                    }
+                    authManager.setSelectedWarehouse(loginData.user.warehouses.firstOrNull())
+
                     _navigationEvent.value = LoginNavigationEvent.LoginSuccess(loginData)
                 }
 

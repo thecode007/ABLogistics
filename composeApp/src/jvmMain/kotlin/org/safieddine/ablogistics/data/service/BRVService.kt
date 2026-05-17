@@ -145,6 +145,20 @@ object BRVService {
             }
         }
 
+    suspend fun reverseFinalization(id: Long): Result<BaseResponse<ReceiptResponse>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val res: BaseResponse<ReceiptResponse> = client.post("/api/v1/logistics/reverse-finalize/$id").body()
+                if (res.success) Result.success(res)
+                else Result.failure(Exception(res.message))
+            } catch (e: io.ktor.client.plugins.ResponseException) {
+                val errorBody = try { e.response.bodyAsText() } catch (_: Exception) { "" }
+                Result.failure(Exception("Server error (${e.response.status.value}): $errorBody"))
+            } catch (e: Exception) {
+                Result.failure(Exception("Failed to reverse finalization: ${e.message}"))
+            }
+        }
+
     suspend fun getProfitAnalysis(): Result<BaseResponse<List<ProfitAnalysisResponse>>> =
         withContext(Dispatchers.IO) {
             try {

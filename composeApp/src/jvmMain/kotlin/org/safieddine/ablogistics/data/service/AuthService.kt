@@ -16,6 +16,7 @@ import org.safieddine.ablogistics.data.LoginData
 import org.safieddine.ablogistics.data.LoginRequest
 import org.safieddine.ablogistics.data.config.AppConfig
 import org.safieddine.ablogistics.data.LogoutRequest
+import org.safieddine.ablogistics.data.RefreshTokenRequest
 
 class AuthService {
     private val client = HttpClient {
@@ -77,15 +78,27 @@ class AuthService {
             false
         }
     }
-    fun close() {
-        client.close()
+    suspend fun refreshToken(refreshToken: String): Result<BaseResponse<LoginData>> {
+        return try {
+            val httpResponse = client.post("auth/refresh") {
+                setBody(RefreshTokenRequest(refreshToken))
+            }
+            if (httpResponse.status.value in 200..299) {
+                val response: BaseResponse<LoginData> = httpResponse.body()
+                Result.success(response)
+            } else {
+                val errorBody = try { httpResponse.bodyAsText() } catch(_: Exception) { "No body" }
+                Result.failure(Exception("Refresh failed: $errorBody"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Refresh failed: ${e.message}"))
+        }
     }
 
     suspend fun logout(token: String, deviceToken: String? = null): Boolean {
         return try {
             val response: BaseResponse<String> = client.post("auth/logout") {
                 header("Authorization", "Bearer $token")
-                // Pass device token so backend can unregister it
                 setBody(LogoutRequest(token = deviceToken))
             }.body()
             response.success
@@ -93,5 +106,9 @@ class AuthService {
             println("Logout failed $e")
             false
         }
+    }
+
+    fun close() {
+        client.close()
     }
 }

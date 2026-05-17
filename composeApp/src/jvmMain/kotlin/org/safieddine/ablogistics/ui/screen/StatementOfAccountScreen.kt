@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color.Companion.Black
 import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -158,7 +159,6 @@ fun StateOfAccountScreen(
                         Text("Transactions in ${Locale.getDefault().displayCountry}")
                     }
                 }
-
                 if (error != null) {
                     HorizontalDivider(thickness = 1.dp, color = Black)
                     Text(
@@ -186,7 +186,7 @@ fun StateOfAccountScreen(
                         }
 
                         TableRow(
-                            cells = listOf("", "", "Balance at $statedAt", "", "", formatLocalized(startBalance!!)),
+                            cells = listOf("", "", "Balance at $statedAt", "", "", formatLocalized(startBalance!!.abs())),
                             weights = listOf(0.9f, 1.4f, 3.8f, 1.6f, 1.6f, 2.2f),
                             withVerticalDividers = true
                         )
@@ -205,7 +205,7 @@ fun StateOfAccountScreen(
                             label,
                             if (debit > java.math.BigDecimal.ZERO) formatLocalized(debit) else "",
                             if (credit > java.math.BigDecimal.ZERO) formatLocalized(credit) else "",
-                            formatLocalized(r.afterImpactFunds)
+                            formatLocalized(r.afterImpactFunds.abs())
                         ),
                         weights = listOf(0.9f, 1.4f, 3.8f, 1.6f, 1.6f, 2.2f),
                         withVerticalDividers = true
@@ -218,7 +218,7 @@ fun StateOfAccountScreen(
                             receipts.lastOrNull()?.createdAt?.split("T")[0]
                         }
                         TableRow(
-                            cells = listOf("", "", "Balance at $endAt", "", "", formatLocalized(endBalance!!)),
+                            cells = listOf("", "", "Balance at $endAt", "", "", formatLocalized(endBalance!!.abs())),
                             weights = listOf(0.9f, 1.4f, 3.8f, 1.6f, 1.6f, 2.2f),
                             withVerticalDividers = true
                         )
@@ -233,15 +233,27 @@ fun StateOfAccountScreen(
                     } ?: OffsetDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yy"))
                     val footerAmount = endBalance ?: java.math.BigDecimal.ZERO
                     Text(
-                        text = "On $footerDate, You Owe Us The Amount Of FCFA ${formatLocalized(footerAmount)}.",
+                        text = "On $footerDate, The Balance Of FCFA ${formatLocalized(footerAmount.abs())}.",
                         modifier = Modifier.padding(10.dp),
                         style = FluentTheme.typography.body.copy(fontWeight = FontWeight.Bold)
                     )
                     Text(
                         "N.B: ATTENTION AUX CHANGEMENTS DE PRIX",
-                        modifier = Modifier.padding(start = 10.dp, bottom = 10.dp),
+                        modifier = Modifier.padding(start = 10.dp, bottom = 4.dp),
                         style = FluentTheme.typography.body.copy(fontWeight = FontWeight.Bold)
                     )
+
+                    Row(Modifier.padding(start = 10.dp, bottom = 10.dp)) {
+                        Text(
+                            text = "Total Fuel: ${formatLocalized(customer.totalFuelLiters)} L",
+                            style = FluentTheme.typography.body.copy(fontWeight = FontWeight.Bold, color = Color(0xFF0078D4))
+                        )
+                        Spacer(Modifier.width(20.dp))
+                        Text(
+                            text = "Total Diesel: ${formatLocalized(customer.totalDieselLiters)} L",
+                            style = FluentTheme.typography.body.copy(fontWeight = FontWeight.Bold, color = Color(0xFF8B4513))
+                        )
+                    }
 
                 }
 

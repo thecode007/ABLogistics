@@ -35,39 +35,14 @@ import org.safieddine.ablogistics.data.UpdateCustomerRequest
 import org.safieddine.ablogistics.data.ApproveCustomerUpdateRequest
 import org.safieddine.ablogistics.data.RejectCustomerUpdateRequest
 import org.safieddine.ablogistics.data.config.AppConfig
+import org.safieddine.ablogistics.data.network.HttpClientFactory
 import org.safieddine.ablogistics.data.session.SessionStore
 
 object CustomerService {
 
     private var tokenProvider: TokenProvider = SessionStore
 
-    private val client get() = HttpClient {
-        install(ContentNegotiation) {
-            json(Json {
-                prettyPrint = true
-                isLenient = true
-                ignoreUnknownKeys = true
-            })
-        }
-        install(Logging) {
-            level = LogLevel.ALL // Log ALL: headers, body, info
-            logger = Logger.DEFAULT // prints to standard output
-        }
-        install(HttpTimeout) {
-            requestTimeoutMillis = 15000L
-            connectTimeoutMillis = 15000L
-            socketTimeoutMillis = 15000L
-        }
-        defaultRequest {
-            url(AppConfig.baseUrl)
-            contentType(ContentType.Application.Json)
-            val token = tokenProvider.currentToken()
-            if (!token.isNullOrEmpty()) {
-                header("Authorization", "Bearer $token")
-            }
-            accept(ContentType.Application.Json)
-        }
-    }
+    private val client = HttpClientFactory.httpClient
 
     suspend fun list(warehouseId: Long): Result<BaseResponse<CustomersListResponse>> = withContext(Dispatchers.IO) {
         try {

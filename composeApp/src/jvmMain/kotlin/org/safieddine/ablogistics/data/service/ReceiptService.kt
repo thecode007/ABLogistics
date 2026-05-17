@@ -19,39 +19,14 @@ import kotlinx.serialization.json.Json
 import org.safieddine.ablogistics.data.*
 import org.safieddine.ablogistics.data.ProfitAnalysisResponse
 import org.safieddine.ablogistics.data.config.AppConfig
+import org.safieddine.ablogistics.data.network.HttpClientFactory
 import org.safieddine.ablogistics.data.session.SessionStore
 
 object ReceiptService {
 
     private var tokenProvider: TokenProvider = SessionStore
 
-    private val client get() = HttpClient {
-        install(ContentNegotiation) {
-            json(Json {
-                prettyPrint = true
-                isLenient = true
-                ignoreUnknownKeys = true
-            })
-        }
-        install(Logging) {
-            level = LogLevel.ALL
-            logger = Logger.DEFAULT
-        }
-        install(HttpTimeout) {
-            requestTimeoutMillis = 15000L
-            connectTimeoutMillis = 15000L
-            socketTimeoutMillis = 15000L
-        }
-        defaultRequest {
-            url(AppConfig.baseUrl)
-            contentType(ContentType.Application.Json)
-            val token = tokenProvider.currentToken()
-            if (!token.isNullOrEmpty()) {
-                header("Authorization", "Bearer $token")
-            }
-            accept(ContentType.Application.Json)
-        }
-    }
+    private val client = HttpClientFactory.httpClient
 
     suspend fun create(req: CreateReceiptRequest): Result<BaseResponse<ReceiptResponse>> =
         withContext(Dispatchers.IO) {
@@ -97,6 +72,7 @@ object ReceiptService {
     // Detailed warehouse summary with split by entity type
     suspend fun listWarehouseDetailed(
         warehouseId: Long,
+        customerId: Long? = null,
         type: ReceiptType? = null,
         start: Long? = null,
         end: Long? = null,
@@ -108,6 +84,7 @@ object ReceiptService {
             try {
                 val res: BaseResponse<WarehouseReceiptsSummaryDetailed> = client.get("receipts/warehouse/summary") {
                     parameter("warehouseId", warehouseId)
+                    if (customerId != null) parameter("customerId", customerId)
                     if (type != null) parameter("type", type.name)
                     if (start != null && start != 0L) parameter("start", start)
                     if (end != null && end != 0L) parameter("end", end)
@@ -220,6 +197,28 @@ object ReceiptService {
                 else Result.failure(Exception(res.message))
             } catch (e: Exception) {
                 Result.failure(Exception("Failed to get debt summary: ${e.message}"))
+            }
+        }
+
+    suspend fun deleteLoad(id: Long): Result<BaseResponse<String>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val res: BaseResponse<String> = client.delete("/api/v1/logistics/load/$id").body()
+                if (res.success) Result.success(res)
+                else Result.failure(Exception(res.message))
+            } catch (e: Exception) {
+                Result.failure(Exception("Failed to delete load: ${e.message}"))
+            }
+        }
+
+    suspend fun reverseFinalization(id: Long): Result<BaseResponse<ReceiptResponse>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val res: BaseResponse<ReceiptResponse> = client.post("/api/v1/logistics/reverse-finalize/$id").body()
+                if (res.success) Result.success(res)
+                else Result.failure(Exception(res.message))
+            } catch (e: Exception) {
+                Result.failure(Exception("Failed to reverse finalization: ${e.message}"))
             }
         }
 }

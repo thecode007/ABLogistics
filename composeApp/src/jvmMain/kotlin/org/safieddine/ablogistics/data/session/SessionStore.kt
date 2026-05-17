@@ -19,6 +19,9 @@ object SessionStore : TokenProvider {
     private val _token = MutableStateFlow(storage.getToken())
     val token: StateFlow<String?> = _token.asStateFlow()
 
+    private val _refreshToken = MutableStateFlow(storage.getRefreshToken())
+    val refreshToken: StateFlow<String?> = _refreshToken.asStateFlow()
+
     private val _currentUser = MutableStateFlow(storage.getUser())
     val currentUser: StateFlow<UserResponse?> = _currentUser.asStateFlow()
 
@@ -43,9 +46,14 @@ object SessionStore : TokenProvider {
     val language: StateFlow<Locale> = _language.asStateFlow()
 
     override fun currentToken(): String? = _token.value
+    override fun currentRefreshToken(): String? = _refreshToken.value
 
     fun setToken(value: String?) {
         _token.value = value
+    }
+
+    fun setRefreshToken(value: String?) {
+        _refreshToken.value = value
     }
 
     fun setCurrentUser(value: UserResponse?) {
@@ -66,6 +74,7 @@ object SessionStore : TokenProvider {
 
     fun clear() {
         _token.value = null
+        _refreshToken.value = null
         _currentUser.value = null
         _selectedWarehouse.value = null
     }

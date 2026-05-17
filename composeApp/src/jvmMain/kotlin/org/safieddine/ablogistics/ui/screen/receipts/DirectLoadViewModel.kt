@@ -1,6 +1,7 @@
 package org.safieddine.ablogistics.ui.screen.receipts
 
 import androidx.compose.runtime.*
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -14,12 +15,11 @@ import org.safieddine.ablogistics.data.session.GlobalPriceStore
 import org.safieddine.ablogistics.data.session.SessionStore
 import kotlinx.coroutines.flow.*
 
+@OptIn(FlowPreview::class)
 class DirectLoadViewModel : ViewModel() {
     private val _customers = MutableStateFlow<List<CustomerResponse>>(emptyList())
     val customers: StateFlow<List<CustomerResponse>> = _customers
 
-    private val _suppliers = MutableStateFlow<List<SupplierDTO>>(emptyList())
-    val suppliers: StateFlow<List<SupplierDTO>> = _suppliers
 
     private val _brvs = MutableStateFlow<List<BRVDTO>>(emptyList())
     val brvs: StateFlow<List<BRVDTO>> = _brvs
@@ -54,6 +54,32 @@ class DirectLoadViewModel : ViewModel() {
     var isEditMode by mutableStateOf(false)
     var editingReceiptId by mutableStateOf<Long?>(null)
     var originalReceiptId by mutableStateOf("")
+    var isPaymentOnlyEdit by mutableStateOf(false)
+    
+    var customerFilter by mutableStateOf<CustomerResponse?>(null)
+
+    fun prepareCreate() {
+        isEditMode = false
+        isPaymentOnlyEdit = false
+        editingReceiptId = null
+        receiptId = ""
+        originalReceiptId = ""
+        selectedCustomer = null
+        selectedBrv = null
+        loadedQuantity = ""
+        brvCost = ""
+        description = ""
+        supplierPaid = false
+        customerPaid = false
+        _error.value = null
+        _success.value = null
+        autoFillPrices(selectedMaterial, GlobalPriceStore.prices.value)
+    }
+
+    fun onCustomerFilterChanged(customer: CustomerResponse?, warehouseId: Long) {
+        customerFilter = customer
+        fetchLoads(warehouseId)
+    }
 
     fun onSearchQueryChanged(query: String) {
         _searchQuery.value = query
@@ -108,8 +134,6 @@ class DirectLoadViewModel : ViewModel() {
                 val custRes = CustomerService.list(warehouseId)
                 _customers.value = custRes.getOrNull()?.data?.customers?.filter { it.warehouseId == warehouseId } ?: emptyList()
 
-                val supRes = SupplierService.getSuppliers()
-                _suppliers.value = supRes.getOrNull()?.data ?: emptyList()
 
                 val fleetRes = BRVService.getFleetStatus()
                 _brvs.value = fleetRes.getOrNull()?.data?.brvs ?: emptyList()
@@ -139,6 +163,7 @@ class DirectLoadViewModel : ViewModel() {
         viewModelScope.launch {
             val res = ReceiptService.listWarehouseDetailed(
                 warehouseId = warehouseId,
+                customerId = customerFilter?.id,
                 type = ReceiptType.OUTWARD,
                 size = 100,
                 receiptId = _searchQuery.value.ifBlank { null }
@@ -161,6 +186,10 @@ class DirectLoadViewModel : ViewModel() {
     }
 
     fun processLoad(warehouseId: Long) {
+        if (receiptId.isBlank()) {
+            _error.value = "Receipt ID is mandatory"
+            return
+        }
         val qty = loadedQuantity.toBigDecimalOrNull() ?: return
         val cp = costPrice.toBigDecimalOrNull() ?: return
         val sp = sellingPrice.toBigDecimalOrNull() ?: return
@@ -184,12 +213,12 @@ class DirectLoadViewModel : ViewModel() {
                 sellingPrice = sp,
                 brvCost = bc,
                 description = description.ifBlank { "${selectedMaterial.name} Load: ${brv.plateNumber}" },
-                receiptId = receiptId.ifBlank { null }
+                receiptId = receiptId.trim()
             )
 
             val res = BRVService.processLoad(req)
             if (res.isSuccess) {
-                handlePaymentReceipts(warehouseId, receiptId, cust.id, qty, cp)
+                handlePaymentReceipts(warehouseId, receiptId.trim(), cust.id, qty, cp)
                 _success.value = "Load processed successfully! Linked receipts created."
                 clearForm()
                 fetchLoads(warehouseId)
@@ -215,7 +244,7 @@ class DirectLoadViewModel : ViewModel() {
             val supReq = CreateReceiptRequest(
                 receiptId = payRid,
                 receiptType = ReceiptType.OUTWARD,
-                entityType = EntityType.SUPPLIER,
+                entityType = EntityType.WAREHOUSE,
                 warehouseId = warehouseId,
                 amount = cp.multiply(qty),
                 description = "Payment to supplier for load $rid"
@@ -239,6 +268,7 @@ class DirectLoadViewModel : ViewModel() {
 
     fun prepareEdit(load: ReceiptResponse) {
         isEditMode = true
+        isPaymentOnlyEdit = load.dispatchedQuantity != null
         editingReceiptId = load.id
         selectedCustomer = customers.value.find { it.id == load.customerId }
         selectedBrv = brvs.value.find { it.id == load.brvId }
@@ -258,15 +288,20 @@ class DirectLoadViewModel : ViewModel() {
             val res = ReceiptService.listWarehouseDetailed(load.warehouseId, receiptId = payRid)
             if (res.isSuccess) {
                 val receipts = res.getOrNull()?.data?.receipts ?: emptyList()
-                supplierPaid = receipts.any { it.entityType == EntityType.SUPPLIER }
-                customerPaid = receipts.any { it.entityType == EntityType.CUSTOMER }
+                // For supplier payment, check for WAREHOUSE type with OUTWARD and exact Pay-rid
+                supplierPaid = receipts.any { it.entityType == EntityType.WAREHOUSE && it.receiptType == ReceiptType.OUTWARD && it.receiptId == payRid }
+                customerPaid = receipts.any { it.entityType == EntityType.CUSTOMER && it.receiptId == payRid }
             }
         }
     }
 
     fun updateLoad(warehouseId: Long) {
+        if (receiptId.isBlank()) {
+            _error.value = "Receipt ID is mandatory"
+            return
+        }
         val loadId = editingReceiptId ?: return
-        val rid = receiptId.ifBlank { null }
+        val rid = receiptId.trim()
         val qty = loadedQuantity.toBigDecimalOrNull() ?: return
         val cp = costPrice.toBigDecimalOrNull() ?: return
         val sp = sellingPrice.toBigDecimalOrNull() ?: return
@@ -289,7 +324,7 @@ class DirectLoadViewModel : ViewModel() {
             val res = ReceiptService.update(loadId, req)
             if (res.isSuccess) {
                 // Update payment receipts
-                handleUpdatePaymentReceipts(warehouseId, rid ?: "", custId, qty, cp)
+                handleUpdatePaymentReceipts(warehouseId, rid, custId, qty, cp)
                 _success.value = "Load updated successfully."
                 clearForm()
                 fetchLoads(warehouseId)
@@ -325,13 +360,14 @@ class DirectLoadViewModel : ViewModel() {
         val existing = existingRes.getOrNull()?.data?.receipts ?: emptyList()
         
         // Filter to ensure we only touch receipts matching exactly Pay-rid
-        val supReceipt = existing.find { it.entityType == EntityType.SUPPLIER && it.receiptId == payRid }
+        // Supplier payment is now WAREHOUSE entity type
+        val supReceipt = existing.find { it.entityType == EntityType.WAREHOUSE && it.receiptType == ReceiptType.OUTWARD && it.receiptId == payRid }
         val custReceipt = existing.find { it.entityType == EntityType.CUSTOMER && it.receiptId == payRid }
         
         // Supplier Payment
         if (supplierPaid && supReceipt == null) {
             // Create
-            ReceiptService.create(CreateReceiptRequest(payRid, ReceiptType.OUTWARD, EntityType.SUPPLIER, warehouseId, null, cp.multiply(qty), "Payment to supplier for load $rid"))
+            ReceiptService.create(CreateReceiptRequest(payRid, ReceiptType.OUTWARD, EntityType.WAREHOUSE, warehouseId, null, cp.multiply(qty), "Payment to supplier for load $rid"))
         } else if (!supplierPaid && supReceipt != null) {
             // Delete
             ReceiptService.delete(supReceipt.id)
@@ -339,7 +375,7 @@ class DirectLoadViewModel : ViewModel() {
             // Update amount if changed
             val newAmount = cp.multiply(qty)
             if (supReceipt.amount != newAmount) {
-                ReceiptService.update(supReceipt.id, UpdateReceiptRequest(payRid, ReceiptType.OUTWARD, EntityType.SUPPLIER, newAmount, supReceipt.description))
+                ReceiptService.update(supReceipt.id, UpdateReceiptRequest(payRid, ReceiptType.OUTWARD, EntityType.WAREHOUSE, newAmount, supReceipt.description))
             }
         }
         
@@ -373,8 +409,37 @@ class DirectLoadViewModel : ViewModel() {
         }
     }
 
+    fun reverseFinalization(warehouseId: Long, receiptId: Long) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val res = ReceiptService.reverseFinalization(receiptId)
+            _isLoading.value = false
+            if (res.isSuccess) {
+                _success.value = "Finalization reversed"
+                fetchLoads(warehouseId)
+            } else {
+                _error.value = res.exceptionOrNull()?.message
+            }
+        }
+    }
+
+    fun deleteLoad(warehouseId: Long, receiptId: Long) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val res = ReceiptService.deleteLoad(receiptId)
+            _isLoading.value = false
+            if (res.isSuccess) {
+                _success.value = "Load deleted successfully"
+                fetchLoads(warehouseId)
+            } else {
+                _error.value = res.exceptionOrNull()?.message
+            }
+        }
+    }
+
     private fun clearForm() {
         isEditMode = false
+        isPaymentOnlyEdit = false
         editingReceiptId = null
         selectedCustomer = null
         selectedBrv = null

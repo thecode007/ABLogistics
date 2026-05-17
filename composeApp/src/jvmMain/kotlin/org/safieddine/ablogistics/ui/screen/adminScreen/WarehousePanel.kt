@@ -240,7 +240,7 @@ fun RowScope.WarehousePanel(
 
                                                 Icon(Icons.Filled.ArrowSwap, contentDescription = null)
 
-                                                val total = item.totalFunds
+                                                val total = (item.totalFunds ?: java.math.BigDecimal.ZERO).abs()
 
                                                 val locale = Locale.getDefault()
                                                 val numericValue = parseLocalizedNumber("%.2f".format(total), locale)
