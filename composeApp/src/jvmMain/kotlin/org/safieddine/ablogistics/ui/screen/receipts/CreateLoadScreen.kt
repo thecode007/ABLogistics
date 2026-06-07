@@ -41,7 +41,6 @@ fun CreateLoadScreen() {
     var deliveryCost by remember { mutableStateOf("") }
     var selectedMaterial by remember { mutableStateOf(MaterialType.FUEL) }
     var description by remember { mutableStateOf("") }
-    var receiptId by remember { mutableStateOf("") }
 
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -195,15 +194,6 @@ fun CreateLoadScreen() {
                 )
                 Spacer(Modifier.height(16.dp))
 
-                ABLogisticsTextField(
-                    value = receiptId,
-                    onValueChange = { receiptId = it },
-                    header = { Text("Receipt ID") },
-                    placeholder = { Text("e.g. REC-12345") },
-                    isError = receiptId.isBlank(),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
                 Spacer(Modifier.height(16.dp))
 
                 // Date Picker
@@ -236,45 +226,51 @@ fun CreateLoadScreen() {
 
                 ABLogisticsAccentButton(
                     modifier = Modifier.fillMaxWidth().height(48.dp),
-                    disabled = isProcessing || selectedCustomer == null || selectedBrv == null || quantity.isBlank() || receiptId.isBlank(),
+                    disabled = isProcessing || selectedCustomer == null || selectedBrv == null || quantity.isBlank(),
                     onClick = {
                         val qty = quantity.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO
                         val cp = costPrice.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO
                         val spBase = sellingPrice.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO
                         val dc = deliveryCost.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO
 
-                        // Calculate total selling price per liter including delivery
-                        val spTotal = if (qty.compareTo(java.math.BigDecimal.ZERO) > 0) 
-                            (spBase.multiply(qty).add(dc)).divide(qty, 4, java.math.RoundingMode.HALF_UP) 
+                        val spTotal = if (qty.compareTo(java.math.BigDecimal.ZERO) > 0)
+                            (spBase.multiply(qty).add(dc)).divide(qty, 4, java.math.RoundingMode.HALF_UP)
                             else spBase
-
-                        val req = ProcessLoadRequest(
-                            brvId = selectedBrv!!.id,
-                            customerId = selectedCustomer!!.id,
-                            warehouseId = selectedWarehouse?.id ?: 0L,
-                            materialType = selectedMaterial,
-                            loadedQuantity = qty,
-                            costPrice = cp,
-                            sellingPrice = spTotal,
-                            brvCost = dc,
-                            description = description.ifBlank { "Load for ${selectedCustomer?.name}" },
-                            receiptId = receiptId.trim(),
-                            createdAtMillis = customDateMillis
-                        )
 
                         isProcessing = true
                         scope.launch {
+                            // Auto-generate receipt number from server
+                            val numResult = AppSettingService.nextReceiptNumber()
+                            if (numResult.isFailure) {
+                                error = "Could not generate receipt number: ${numResult.exceptionOrNull()?.message}"
+                                isProcessing = false
+                                return@launch
+                            }
+                            val generatedId = numResult.getOrThrow().toString()
+
+                            val req = ProcessLoadRequest(
+                                brvId = selectedBrv!!.id,
+                                customerId = selectedCustomer!!.id,
+                                warehouseId = selectedWarehouse?.id ?: 0L,
+                                materialType = selectedMaterial,
+                                loadedQuantity = qty,
+                                costPrice = cp,
+                                sellingPrice = spTotal,
+                                brvCost = dc,
+                                description = description.ifBlank { "Load for ${selectedCustomer?.name}" },
+                                receiptId = generatedId,
+                                createdAtMillis = customDateMillis
+                            )
+
                             val res = BRVService.processLoad(req)
                             if (res.isSuccess) {
-                                info = "Load processed successfully. Two receipts created."
+                                info = "Load processed successfully. Receipt #$generatedId created."
                                 error = null
-                                // Reset fields
                                 quantity = ""
                                 costPrice = ""
                                 sellingPrice = ""
                                 deliveryCost = ""
                                 description = ""
-                                receiptId = ""
                                 brvIndex = null
                                 selectedBrv = null
                                 selectedCustomer = null

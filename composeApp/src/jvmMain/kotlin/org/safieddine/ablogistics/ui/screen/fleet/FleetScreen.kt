@@ -38,6 +38,7 @@ import io.github.composefluent.icons.regular.CheckmarkCircle
 import org.safieddine.ablogistics.ui.screen.receipts.DeliveryFinalizationDialog
 import org.safieddine.ablogistics.data.EntityType
 import org.safieddine.ablogistics.data.ReceiptType
+import org.safieddine.ablogistics.ui.utils.NumberCommaTransformation
 
 
 @Composable
@@ -416,6 +417,7 @@ fun AddBRVDialog(
                     header = { Text("Capacity (Liters) *") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    visualTransformation = NumberCommaTransformation(),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (capacityError != null) Text(capacityError!!, color = FluentTheme.colors.system.critical, fontSize = 12.sp)

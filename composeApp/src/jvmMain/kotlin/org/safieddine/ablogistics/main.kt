@@ -380,9 +380,13 @@ fun main() = application {
                 PriceEditDialog(
                     visible = showPriceEditDialog,
                     currentPrices = mainViewModel.globalPrices.collectAsState().value,
+                    currentReceiptCounter = mainViewModel.receiptCounter.collectAsState().value,
                     onDismiss = { showPriceEditDialog = false },
                     onSave = { newPrices ->
                         mainViewModel.updatePrices(newPrices)
+                    },
+                    onSaveReceiptCounter = { startFrom ->
+                        mainViewModel.setReceiptCounter(startFrom)
                     }
                 )
             }

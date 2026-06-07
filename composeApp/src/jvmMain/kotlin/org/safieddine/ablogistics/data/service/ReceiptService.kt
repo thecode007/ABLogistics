@@ -173,16 +173,9 @@ object ReceiptService {
     suspend fun getProfitAnalysis(): Result<BaseResponse<ProfitAnalysisDTO>> =
         withContext(Dispatchers.IO) {
             try {
-                val res: BaseResponse<List<ProfitAnalysisResponse>> = client.get("/api/v1/logistics/profit-analysis").body()
-                if (res.success) {
-                    val list = res.data ?: emptyList()
-                    val aggregated = ProfitAnalysisDTO(
-                        totalProfit = list.fold(java.math.BigDecimal.ZERO) { acc, it -> acc.add(it.totalProfit) },
-                        expectedRevenue = java.math.BigDecimal.ZERO, // totalExpectedRevenue not in backend response
-                        totalQuantityLoaded = list.fold(java.math.BigDecimal.ZERO) { acc, it -> acc.add(it.totalQuantityLoaded) }
-                    )
-                    Result.success(BaseResponse(success = true, message = res.message, code = "200", data = aggregated, timestamp = System.currentTimeMillis()))
-                }
+                // Backend returns a single aggregate object (not a list)
+                val res: BaseResponse<ProfitAnalysisDTO> = client.get("/api/v1/logistics/profit-analysis").body()
+                if (res.success) Result.success(res)
                 else Result.failure(Exception(res.message))
             } catch (e: Exception) {
                 Result.failure(Exception("Failed to get profit analysis: ${e.message}"))
@@ -228,6 +221,11 @@ data class ProfitAnalysisDTO(
     @kotlinx.serialization.Serializable(with = org.safieddine.ablogistics.data.BigDecimalAsStringSerializer::class)
     val totalProfit: java.math.BigDecimal = java.math.BigDecimal.ZERO,
     @kotlinx.serialization.Serializable(with = org.safieddine.ablogistics.data.BigDecimalAsStringSerializer::class)
+    val totalExpectedRevenue: java.math.BigDecimal = java.math.BigDecimal.ZERO,
+    @kotlinx.serialization.Serializable(with = org.safieddine.ablogistics.data.BigDecimalAsStringSerializer::class)
+    val totalShortagePenalty: java.math.BigDecimal = java.math.BigDecimal.ZERO,
+    // Legacy / computed fields kept for compatibility
+    @kotlinx.serialization.Serializable(with = org.safieddine.ablogistics.data.BigDecimalAsStringSerializer::class)
     val expectedRevenue: java.math.BigDecimal = java.math.BigDecimal.ZERO,
     @kotlinx.serialization.Serializable(with = org.safieddine.ablogistics.data.BigDecimalAsStringSerializer::class)
     val totalQuantityLoaded: java.math.BigDecimal = java.math.BigDecimal.ZERO
@@ -235,6 +233,12 @@ data class ProfitAnalysisDTO(
 
 @kotlinx.serialization.Serializable
 data class DebtSummaryDTO(
+    // Real API fields
+    @kotlinx.serialization.Serializable(with = org.safieddine.ablogistics.data.BigDecimalAsStringSerializer::class)
+    val distributorDebt: java.math.BigDecimal = java.math.BigDecimal.ZERO,
+    @kotlinx.serialization.Serializable(with = org.safieddine.ablogistics.data.BigDecimalAsStringSerializer::class)
+    val customerFunds: java.math.BigDecimal = java.math.BigDecimal.ZERO,
+    // Legacy / compatibility aliases (may be absent from response)
     @kotlinx.serialization.Serializable(with = org.safieddine.ablogistics.data.BigDecimalAsStringSerializer::class)
     val supplierDebt: java.math.BigDecimal = java.math.BigDecimal.ZERO,
     @kotlinx.serialization.Serializable(with = org.safieddine.ablogistics.data.BigDecimalAsStringSerializer::class)

@@ -13,6 +13,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import org.safieddine.ablogistics.data.session.GlobalPriceStore
 import org.safieddine.ablogistics.data.session.SessionStore
+import org.safieddine.ablogistics.data.service.AppSettingService
 import kotlinx.coroutines.flow.*
 
 @OptIn(FlowPreview::class)
@@ -62,7 +63,7 @@ class DirectLoadViewModel : ViewModel() {
         isEditMode = false
         isPaymentOnlyEdit = false
         editingReceiptId = null
-        receiptId = ""
+        receiptId = "" // will be auto-generated on submit
         originalReceiptId = ""
         selectedCustomer = null
         selectedBrv = null
@@ -186,10 +187,6 @@ class DirectLoadViewModel : ViewModel() {
     }
 
     fun processLoad(warehouseId: Long) {
-        if (receiptId.isBlank()) {
-            _error.value = "Receipt ID is mandatory"
-            return
-        }
         val qty = loadedQuantity.toBigDecimalOrNull() ?: return
         val cp = costPrice.toBigDecimalOrNull() ?: return
         val sp = sellingPrice.toBigDecimalOrNull() ?: return
@@ -201,7 +198,17 @@ class DirectLoadViewModel : ViewModel() {
             _isLoading.value = true
             _error.value = null
             _success.value = null
-            
+
+            // Auto-generate receipt number from server
+            val numberResult = AppSettingService.nextReceiptNumber()
+            if (numberResult.isFailure) {
+                _error.value = "Could not generate receipt number: ${numberResult.exceptionOrNull()?.message}"
+                _isLoading.value = false
+                return@launch
+            }
+            val generatedId = numberResult.getOrThrow().toString()
+            receiptId = generatedId
+
             val req = ProcessLoadRequest(
                 brvId = brv.id,
                 customerId = cust.id,
@@ -213,13 +220,13 @@ class DirectLoadViewModel : ViewModel() {
                 sellingPrice = sp,
                 brvCost = bc,
                 description = description.ifBlank { "${selectedMaterial.name} Load: ${brv.plateNumber}" },
-                receiptId = receiptId.trim()
+                receiptId = generatedId
             )
 
             val res = BRVService.processLoad(req)
             if (res.isSuccess) {
-                handlePaymentReceipts(warehouseId, receiptId.trim(), cust.id, qty, cp)
-                _success.value = "Load processed successfully! Linked receipts created."
+                handlePaymentReceipts(warehouseId, generatedId, cust.id, qty, cp)
+                _success.value = "Load processed successfully! Receipt #$generatedId created."
                 clearForm()
                 fetchLoads(warehouseId)
             } else {

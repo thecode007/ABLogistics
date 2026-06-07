@@ -212,7 +212,7 @@ fun DirectLoadEntryScreen(viewModel: DirectLoadViewModel = remember { DirectLoad
             closeButtonText = "Cancel",
             onButtonClick = { btn ->
                 if (btn == ContentDialogButton.Primary) {
-                    if (!isLoading && viewModel.selectedCustomer != null && viewModel.selectedBrv != null && viewModel.receiptId.isNotBlank()) {
+                    if (!isLoading && viewModel.selectedCustomer != null && viewModel.selectedBrv != null) {
                         if (viewModel.isEditMode) {
                             viewModel.updateLoad(selectedWarehouse?.id ?: 0L)
                         } else {
@@ -513,19 +513,6 @@ fun LoadEntryForm(
             value = viewModel.description,
             onValueChange = { viewModel.description = it },
             header = { Text("Description") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            enabled = !viewModel.isPaymentOnlyEdit
-        )
-        
-        Spacer(Modifier.height(16.dp))
-
-        ABLogisticsTextField(
-            value = viewModel.receiptId,
-            onValueChange = { viewModel.receiptId = it },
-            header = { Text("Receipt ID") },
-            placeholder = { Text("e.g. REC-12345") },
-            isError = viewModel.receiptId.isBlank(),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             enabled = !viewModel.isPaymentOnlyEdit

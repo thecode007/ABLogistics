@@ -44,6 +44,8 @@ import org.safieddine.ablogistics.ui.theme.ABLogisticsTextField
 import org.safieddine.ablogistics.ui.theme.ABLogisticsButton
 import org.safieddine.ablogistics.ui.theme.ABLogisticsSubtleButton
 import org.safieddine.ablogistics.ui.theme.ABLogisticsAccentButton
+import org.safieddine.ablogistics.ui.utils.NumberCommaTransformation
+import org.safieddine.ablogistics.data.service.AppSettingService
 
 @OptIn(ExperimentalTime::class, ExperimentalFluentApi::class)
 @Composable
@@ -579,7 +581,6 @@ fun ReceiptsAdminScreen() {
 
 
     if (showForm) {
-        var receiptId by remember { mutableStateOf("") }
         var amount by remember { mutableStateOf("") }
         var description by remember { mutableStateOf("") }
         var rtIndex by remember { mutableStateOf(1) } // Fixed to OUTWARD (1)
@@ -595,8 +596,7 @@ fun ReceiptsAdminScreen() {
 
         val parsedAmount = amount.toBigDecimalOrNull()
         val valid =
-            receiptId.isNotBlank() &&
-                    (parsedAmount?.let { it > java.math.BigDecimal.ZERO } == true)
+            (parsedAmount?.let { it > java.math.BigDecimal.ZERO } == true)
                     && (if (useCustomDate) customDateMillis != null else true)
                     && selectedWarehouse != null
 
@@ -612,20 +612,28 @@ fun ReceiptsAdminScreen() {
                         if (creating) return@ContentDialog
                         touched = true
                         if (!valid) return@ContentDialog
-                        val req = CreateReceiptRequest(
-                            receiptId = receiptId.trim(),
-                            receiptType = ReceiptType.OUTWARD,
-                            entityType = EntityType.WAREHOUSE,
-                            warehouseId = selectedWarehouse!!.id,
-                            amount = amount.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO,
-                            description = description.ifBlank { null },
-                            createdAtMillis = if (useCustomDate) customDateMillis else null
-                        )
                         scope.launch {
                             creating = true
+                            // Auto-generate receipt number from server
+                            val numResult = AppSettingService.nextReceiptNumber()
+                            if (numResult.isFailure) {
+                                error = "Could not generate receipt number: ${numResult.exceptionOrNull()?.message}"
+                                creating = false
+                                return@launch
+                            }
+                            val generatedId = numResult.getOrThrow().toString()
+                            val req = CreateReceiptRequest(
+                                receiptId = generatedId,
+                                receiptType = ReceiptType.OUTWARD,
+                                entityType = EntityType.WAREHOUSE,
+                                warehouseId = selectedWarehouse!!.id,
+                                amount = amount.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO,
+                                description = description.ifBlank { null },
+                                createdAtMillis = if (useCustomDate) customDateMillis else null
+                            )
                             val res = ReceiptService.create(req)
                             if (res.isSuccess) {
-                                info = "Receipt created"
+                                info = "Receipt #$generatedId created"
                                 error = null
                                 showForm = false
                                 load()
@@ -642,15 +650,7 @@ fun ReceiptsAdminScreen() {
             },
             content = {
                 Column(Modifier.fillMaxWidth()) {
-                    ABLogisticsTextField(
-                        value = receiptId,
-                        onValueChange = { receiptId = it },
-                        header = { Text("Receipt ID") },
-                        isError = touched && receiptId.isBlank(),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(4.dp))
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
 
                         CalendarDatePicker(
@@ -689,6 +689,7 @@ fun ReceiptsAdminScreen() {
                             (amount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } != true)
                         ),
                         singleLine = true,
+                        visualTransformation = NumberCommaTransformation(),
                         modifier = Modifier.fillMaxWidth())
                     Spacer(Modifier.height(8.dp))
                     if (creating) {
@@ -813,6 +814,7 @@ fun ReceiptsAdminScreen() {
                         header = { Text(stringResource(Res.string.amount)) },
                         isError = touched && (amount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } != true),
                         singleLine = true,
+                        visualTransformation = NumberCommaTransformation(),
                         modifier = Modifier.fillMaxWidth()
                     )
 

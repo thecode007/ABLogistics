@@ -14,6 +14,7 @@ import org.safieddine.ablogistics.data.NotificationManager
 import org.safieddine.ablogistics.data.session.GlobalPriceStore
 import org.safieddine.ablogistics.data.service.UserService
 import org.safieddine.ablogistics.data.service.PriceService
+import org.safieddine.ablogistics.data.service.AppSettingService
 
 class MainViewModel(val userService: UserService = UserService,
     val authManager: AuthManager): ViewModel() {
@@ -33,9 +34,33 @@ class MainViewModel(val userService: UserService = UserService,
     private val _globalPrices = MutableStateFlow<List<MaterialPriceDTO>>(emptyList())
     val globalPrices: StateFlow<List<MaterialPriceDTO>> = _globalPrices
 
+    private val _receiptCounter = MutableStateFlow<Long?>(null)
+    val receiptCounter: StateFlow<Long?> = _receiptCounter
+
     init {
         fetchPrices()
+        fetchReceiptCounter()
         observePriceUpdates()
+    }
+
+    fun fetchReceiptCounter() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = AppSettingService.getReceiptCounter()
+            result.getOrNull()?.data?.nextReceiptNumber?.let {
+                _receiptCounter.value = it
+            }
+        }
+    }
+
+    fun setReceiptCounter(startFrom: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = AppSettingService.setReceiptCounter(startFrom)
+            if (result.isSuccess) {
+                _receiptCounter.value = startFrom
+            } else {
+                println("Set counter failed: ${result.exceptionOrNull()?.message}")
+            }
+        }
     }
 
     fun fetchPrices() {
