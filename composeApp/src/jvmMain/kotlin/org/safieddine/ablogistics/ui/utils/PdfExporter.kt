@@ -6,7 +6,9 @@ import com.lowagie.text.pdf.PdfPTable
 import com.lowagie.text.pdf.PdfWriter
 import org.safieddine.ablogistics.data.MaterialType
 import org.safieddine.ablogistics.data.ReceiptResponse
+import org.safieddine.ablogistics.data.BrvPaymentTodoResponse
 import java.awt.Color
+import java.awt.Desktop
 import java.io.File
 import java.io.FileOutputStream
 import java.math.BigDecimal
@@ -216,6 +218,177 @@ object PdfExporter {
             e.printStackTrace()
         } finally {
             document.close()
+        }
+    }
+
+    private fun openFile(file: File) {
+        try {
+            if (Desktop.isDesktopSupported()) {
+                val desktop = Desktop.getDesktop()
+                if (desktop.isSupported(Desktop.Action.OPEN)) {
+                    desktop.open(file)
+                    return
+                }
+            }
+            // Fallback for different OS environments
+            val os = System.getProperty("os.name").lowercase()
+            if (os.contains("win")) {
+                Runtime.getRuntime().exec(arrayOf("cmd.exe", "/c", "start", "\"\"", file.absolutePath))
+            } else if (os.contains("mac")) {
+                Runtime.getRuntime().exec(arrayOf("open", file.absolutePath))
+            } else {
+                Runtime.getRuntime().exec(arrayOf("xdg-open", file.absolutePath))
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun generateBrvPaymentsPdf(payments: List<BrvPaymentTodoResponse>) {
+        val fileChooser = JFileChooser()
+        fileChooser.dialogTitle = "Save BRV Payments PDF"
+        fileChooser.fileFilter = FileNameExtensionFilter("PDF Files", "pdf")
+        fileChooser.selectedFile = File("BRV_Payments_Todo.pdf")
+
+        val userSelection = fileChooser.showSaveDialog(null)
+        if (userSelection != JFileChooser.APPROVE_OPTION) return
+
+        var file = fileChooser.selectedFile
+        if (!file.name.lowercase().endsWith(".pdf")) {
+            file = File(file.absolutePath + ".pdf")
+        }
+
+        val document = Document(PageSize.A4)
+        try {
+            PdfWriter.getInstance(document, FileOutputStream(file))
+            document.open()
+
+            // Header Table (Logo on left, Title & Issue Date on right)
+            val headerTable = PdfPTable(2)
+            headerTable.widthPercentage = 100f
+            headerTable.setWidths(floatArrayOf(1f, 4f))
+            headerTable.defaultCell.border = Rectangle.NO_BORDER
+
+            // Logo Cell
+            val logoCell = PdfPCell()
+            logoCell.border = Rectangle.NO_BORDER
+            logoCell.verticalAlignment = Element.ALIGN_MIDDLE
+            try {
+                val resourceStream = PdfExporter::class.java.classLoader.getResourceAsStream("drawable/ab_logo.png")
+                    ?: PdfExporter::class.java.classLoader.getResourceAsStream("ab_logo.png")
+                val logo = if (resourceStream != null) {
+                    Image.getInstance(resourceStream.readBytes())
+                } else {
+                    var logoPath = "composeApp/src/commonMain/composeResources/drawable/ab_logo.png"
+                    if (!File(logoPath).exists()) {
+                        logoPath = "src/commonMain/composeResources/drawable/ab_logo.png"
+                    }
+                    Image.getInstance(logoPath)
+                }
+                logo.scaleToFit(80f, 80f)
+                logoCell.addElement(logo)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            headerTable.addCell(logoCell)
+
+            // Title & Date Cell
+            val titleCell = PdfPCell()
+            titleCell.border = Rectangle.NO_BORDER
+            titleCell.verticalAlignment = Element.ALIGN_MIDDLE
+            titleCell.setPaddingLeft(12f)
+
+            val titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16f, Color.BLACK)
+            val dateFont = FontFactory.getFont(FontFactory.HELVETICA, 10f, Color.DARK_GRAY)
+
+            val pTitle = Paragraph("BRV PAYMENTS TODO LIST", titleFont)
+            pTitle.alignment = Element.ALIGN_LEFT
+            titleCell.addElement(pTitle)
+
+            val todayStr = java.time.LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+            val pDate = Paragraph("Issue Date: $todayStr", dateFont)
+            pDate.alignment = Element.ALIGN_LEFT
+            pDate.setSpacingBefore(4f)
+            titleCell.addElement(pDate)
+
+            headerTable.addCell(titleCell)
+
+            document.add(headerTable)
+            document.add(Paragraph("\n"))
+
+            // Main Checklist Table (Tick, BRV Plate, Customer, Amount)
+            val table = PdfPTable(4)
+            table.widthPercentage = 100f
+            table.setWidths(floatArrayOf(0.6f, 1.5f, 3.5f, 1.5f))
+            table.setSpacingBefore(10f)
+
+            val detailsFont = FontFactory.getFont(FontFactory.HELVETICA, 11f, Color.BLACK)
+
+            fun addCheckboxCell(checked: Boolean) {
+                val outerCell = PdfPCell()
+                outerCell.horizontalAlignment = Element.ALIGN_CENTER
+                outerCell.verticalAlignment = Element.ALIGN_MIDDLE
+                outerCell.border = Rectangle.BOTTOM
+                outerCell.borderWidth = 0.5f
+                outerCell.borderColor = Color(0xFFE5E5E5.toInt())
+                outerCell.setPadding(4f)
+                
+                val innerTable = PdfPTable(1)
+                innerTable.totalWidth = 10f
+                innerTable.isLockedWidth = true
+                
+                val innerCell = PdfPCell()
+                innerCell.minimumHeight = 10f
+                innerCell.borderWidth = 1f
+                innerCell.borderColor = Color.GRAY
+                innerCell.setPadding(0f)
+                
+                if (checked) {
+                    innerCell.backgroundColor = Color(0xFF0078D4.toInt()) // Fluent blue Accent
+                    val checkFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8f, Color.WHITE)
+                    val p = Paragraph("x", checkFont)
+                    p.alignment = Element.ALIGN_CENTER
+                    p.leading = 6f
+                    innerCell.addElement(p)
+                } else {
+                    innerCell.backgroundColor = Color.WHITE
+                }
+                
+                innerTable.addCell(innerCell)
+                outerCell.addElement(innerTable)
+                table.addCell(outerCell)
+            }
+
+            fun addDataCell(text: String, align: Int = Element.ALIGN_CENTER) {
+                val cell = PdfPCell(Phrase(text, detailsFont))
+                cell.horizontalAlignment = align
+                cell.border = Rectangle.BOTTOM
+                cell.borderWidth = 0.5f
+                cell.borderColor = Color(0xFFE5E5E5.toInt())
+                cell.setPadding(8f)
+                table.addCell(cell)
+            }
+
+            for (payment in payments) {
+                addCheckboxCell(false) // Always empty so the employee can tick it manually on the printed sheet
+                addDataCell(payment.plateNumber)
+                addDataCell(payment.customerName, Element.ALIGN_LEFT)
+                
+                val amountStr = java.text.DecimalFormat("#,##0.00").format(payment.amount)
+                addDataCell(amountStr + " DZD", Element.ALIGN_RIGHT)
+            }
+
+            document.add(table)
+
+            // Auto-open document
+            document.close()
+            openFile(file)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            if (document.isOpen) {
+                document.close()
+            }
         }
     }
 }

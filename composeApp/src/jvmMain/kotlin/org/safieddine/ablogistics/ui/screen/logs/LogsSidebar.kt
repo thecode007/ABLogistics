@@ -36,7 +36,6 @@ import io.github.composefluent.icons.regular.History
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.safieddine.ablogistics.data.BaseResponse
-
 import org.safieddine.ablogistics.data.service.LogService
 import org.safieddine.ablogistics.data.service.UserService
 import org.safieddine.ablogistics.data.UserDTO
@@ -171,7 +170,9 @@ fun LogsSidebar(
                                         localDate.year,
                                         localDate.monthValue + 1,
                                         localDate.day,
-                                        0, 0, 0
+                                        0, 
+                                        0, 
+                                        0
                                     )
                                     startDate = startOfDay.toInstant(java.time.ZoneOffset.UTC).toEpochMilli()
                                     refresh()

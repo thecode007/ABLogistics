@@ -169,4 +169,37 @@ object BRVService {
                 Result.failure(Exception("Failed to get profit analysis: ${e.message}"))
             }
         }
+
+    suspend fun getBrvPayments(): Result<BaseResponse<List<BrvPaymentTodoResponse>>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val res: BaseResponse<List<BrvPaymentTodoResponse>> = client.get("/api/v1/logistics/brv-payments").body()
+                if (res.success) Result.success(res)
+                else Result.failure(Exception(res.message))
+            } catch (e: Exception) {
+                Result.failure(Exception("Failed to get BRV payments: ${e.message}"))
+            }
+        }
+
+    suspend fun tickBrvPayment(id: Long): Result<BaseResponse<BrvPaymentTodoResponse>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val res: BaseResponse<BrvPaymentTodoResponse> = client.put("/api/v1/logistics/brv-payments/$id/tick").body()
+                if (res.success) Result.success(res)
+                else Result.failure(Exception(res.message))
+            } catch (e: Exception) {
+                Result.failure(Exception("Failed to tick BRV payment: ${e.message}"))
+            }
+        }
+
+    suspend fun confirmBrvPayments(): Result<BaseResponse<ConfirmPaymentsResponse>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val res: BaseResponse<ConfirmPaymentsResponse> = client.post("/api/v1/logistics/brv-payments/confirm").body()
+                if (res.success) Result.success(res)
+                else Result.failure(Exception(res.message))
+            } catch (e: Exception) {
+                Result.failure(Exception("Failed to confirm BRV payments: ${e.message}"))
+            }
+        }
 }

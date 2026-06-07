@@ -19,6 +19,7 @@ import io.github.composefluent.icons.filled.PeopleMoney
 import io.github.composefluent.icons.filled.Receipt
 import io.github.composefluent.icons.filled.VehicleTruckProfile
 import io.github.composefluent.icons.regular.*
+import io.github.composefluent.icons.filled.Home
 import androidx.compose.ui.unit.dp
 
 import org.jetbrains.compose.resources.stringResource
@@ -28,6 +29,7 @@ import org.safieddine.ablogistics.ui.screen.fleet.FleetScreen
 import org.safieddine.ablogistics.ui.screen.receipts.DirectLoadEntryScreen
 import org.safieddine.ablogistics.ui.screen.receipts.ReceiptsAdminScreen
 import org.safieddine.ablogistics.ui.screen.receipts.ReceiptsCustomerScreen
+import org.safieddine.ablogistics.ui.screen.receipts.BrvPaymentsScreen
 import ablogistics.composeapp.generated.resources.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -40,7 +42,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.ColumnScope
 import io.github.composefluent.icons.filled.BuildingFactory
-import io.github.composefluent.icons.regular.Home
+import io.github.composefluent.icons.filled.DocumentTableTruck
 
 
 data class NavigationItem(
@@ -63,6 +65,7 @@ sealed class AppScreen(val title: String) {
     object Settings : AppScreen("Settings")
     object Fleet : AppScreen("Fleet Tracking")
     object DirectLoad : AppScreen("Direct Load")
+    object BrvPayments : AppScreen("BRV Payments")
 }
 
 @OptIn(ExperimentalFluentApi::class)
@@ -84,7 +87,7 @@ fun TeamsNavigationRail() {
                 selected = selectedScreen is AppScreen.Dashboard,
                 onClick = { selectedScreen = AppScreen.Dashboard },
                 text = { Text("Dashboard") },
-                icon = { Icon(imageVector = Icons.Regular.Home, contentDescription = "Dashboard") }
+                icon = { Icon(imageVector = Icons.Filled.Home, contentDescription = "Dashboard") }
             )
  
             // Fleet
@@ -100,7 +103,7 @@ fun TeamsNavigationRail() {
                 selected = selectedScreen is AppScreen.DirectLoad,
                 onClick = { selectedScreen = AppScreen.DirectLoad },
                 text = { Text("Direct Load") },
-                icon = { Icon(imageVector = Icons.Regular.DocumentTableTruck, contentDescription = "Direct Load") }
+                icon = { Icon(imageVector = Icons.Filled.DocumentTableTruck, contentDescription = "Direct Load") }
             )
 
             // Customers
@@ -136,6 +139,13 @@ fun TeamsNavigationRail() {
                         icon = { Icon(imageVector = Icons.Filled.Receipt, contentDescription = "Admin") },
                         content = { Text("Admin") }
                     )
+                    // BRV Payments
+                    SideNavItem(
+                        selected = selectedScreen is AppScreen.BrvPayments,
+                        onClick = { selectedScreen = AppScreen.BrvPayments },
+                        icon = { Icon(imageVector = Icons.Filled.PeopleMoney, contentDescription = "BRV Payments") },
+                        content = { Text("BRV Payments Todo") }
+                    )
                 }
             )
         },
@@ -163,6 +173,7 @@ fun TeamsNavigationRail() {
                 is AppScreen.DirectLoad -> RailScreen("Direct Load", Icons.Regular.DocumentTableTruck) { DirectLoadEntryScreen() }
                 is AppScreen.ReceiptsCustomer -> RailScreen("Customer Receipts", Icons.Regular.Receipt) { ReceiptsCustomerScreen() }
                 is AppScreen.Admin -> RailScreen("Admin", Icons.Filled.Receipt) { ReceiptsAdminScreen() }
+                is AppScreen.BrvPayments -> BrvPaymentsScreen()
                 else -> {}
             }
         }

@@ -514,7 +514,7 @@ private fun DeliveryRatioCard(modifier: Modifier, ratio: Float, grandTotal: BigD
                 style = FluentTheme.typography.caption,
                 color = FluentTheme.colors.background.smoke.default
             )
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.height(20.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 androidx.compose.foundation.Canvas(Modifier.size(64.dp)) {
                     val stroke = 9.dp.toPx()
