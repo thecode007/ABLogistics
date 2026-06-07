@@ -231,7 +231,7 @@ fun FrameWindowScope.TitleBar(
                             modifier = Modifier
                                 .height(30.dp)
                                 .clip(RoundedCornerShape(15.dp))
-                                .background(TeamsAvatarBg)
+                                .background(Color.Black)
                                 .clickable { userMenuOpen = true }
                                 .padding(horizontal = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -259,7 +259,7 @@ fun FrameWindowScope.TitleBar(
                             Spacer(Modifier.width(6.dp))
                             Text(
                                 text = titleBarState.userName,
-                                color = TeamsOnSurface,
+                                color = Color.White,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -269,7 +269,7 @@ fun FrameWindowScope.TitleBar(
                                     "(${stringResource(Res.string.role_admin)})"
                                 else
                                     "(${stringResource(Res.string.role_manager)})",
-                                color = TeamsOnSurface70,
+                                color = Color.White,
                                 fontSize = 11.sp
                             )
                         }

@@ -8,8 +8,6 @@ data class BRVDTO(
     val id: Long,
     val plateNumber: String,
     val driverName: String?,
-    val driverPhone: String? = null,
-    val vendor: String?,
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val capacity: BigDecimal,
     val status: String

@@ -66,10 +66,9 @@ fun FleetScreen(
         var query by remember { mutableStateOf("") }
         val visibleBrvs by remember(brvs, query) {
             mutableStateOf(
-                if (query.isBlank()) brvs else brvs.filter {
+                        if (query.isBlank()) brvs else brvs.filter {
                     it.plateNumber.contains(query, ignoreCase = true) ||
-                            (it.driverName?.contains(query, ignoreCase = true) ?: false) ||
-                            (it.vendor?.contains(query, ignoreCase = true) ?: false)
+                            (it.driverName?.contains(query, ignoreCase = true) ?: false)
                 }
             )
         }
@@ -84,7 +83,7 @@ fun FleetScreen(
                 value = query,
                 onValueChange = { query = it },
                 placeholder = {
-                    Text("Search by Plate, Driver or Vendor")
+                    Text("Search by Plate or Driver")
                 },
                 singleLine = true,
                 modifier = Modifier.weight(1f)
@@ -167,21 +166,19 @@ fun FleetScreen(
                 showAddDialog = false
                 brvToEdit = null
             },
-            onConfirm = { plate, driver, phone, vendor, capacity ->
+            onConfirm = { plate, driver, capacity ->
                 if (brvToEdit != null) {
                     viewModel.updateBRV(
                         brvToEdit!!.copy(
                             plateNumber = plate,
                             driverName = driver,
-                            driverPhone = phone,
-                            vendor = vendor,
                             capacity = capacity
                         ),
                         onSuccess = { brvToEdit = null }
                     )
                 } else {
                     viewModel.saveBRV(
-                        BRVDTO(0, plate, driver, phone, vendor, capacity, "IDLE"),
+                        BRVDTO(0, plate, driver, capacity, "IDLE"),
                         onSuccess = { showAddDialog = false }
                     )
                 }
@@ -254,7 +251,6 @@ fun FleetTable(
             ) {
                 Text("Plate Number", Modifier.weight(1.2f), style = FluentTheme.typography.title.copy(fontSize = 14.sp), textAlign = TextAlign.Center)
                 Text("Driver Name", Modifier.weight(1.5f), style = FluentTheme.typography.title.copy(fontSize = 14.sp), textAlign = TextAlign.Center)
-                Text("Vendor", Modifier.weight(1.2f), style = FluentTheme.typography.title.copy(fontSize = 14.sp), textAlign = TextAlign.Center)
                 Text("Capacity", Modifier.weight(0.8f), style = FluentTheme.typography.title.copy(fontSize = 14.sp), textAlign = TextAlign.Center)
                 Text("Status", Modifier.weight(1.2f), style = FluentTheme.typography.title.copy(fontSize = 14.sp), textAlign = TextAlign.Center)
                 Text("Actions", Modifier.weight(0.8f), style = FluentTheme.typography.title.copy(fontSize = 14.sp), textAlign = TextAlign.Center)
@@ -273,7 +269,6 @@ fun FleetTable(
             ) {
                 Text(brv.plateNumber, textAlign = TextAlign.Center, modifier = Modifier.weight(1.2f), fontWeight = FontWeight.Bold)
                 Text(brv.driverName ?: "N/A", textAlign = TextAlign.Center, modifier = Modifier.weight(1.5f))
-                Text(brv.vendor ?: "N/A", textAlign = TextAlign.Center, modifier = Modifier.weight(1.2f))
                 Text("${brv.capacity} L", textAlign = TextAlign.Center, modifier = Modifier.weight(0.8f))
                 StatusBadge(brv.status, modifier = Modifier.weight(1.2f))
                 Row(modifier = Modifier.weight(0.8f), horizontalArrangement = Arrangement.Center) {
@@ -328,36 +323,26 @@ fun StatusBadge(status: String, modifier: Modifier = Modifier) {
 fun AddBRVDialog(
     existingBrv: BRVDTO? = null,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, String, String, java.math.BigDecimal) -> Unit
+    onConfirm: (String, String, java.math.BigDecimal) -> Unit
 ) {
     var plate by remember { mutableStateOf(existingBrv?.plateNumber ?: "") }
     var driver by remember { mutableStateOf(existingBrv?.driverName ?: "") }
-    var phone by remember { mutableStateOf(existingBrv?.driverPhone ?: "") }
-    var vendor by remember { mutableStateOf(existingBrv?.vendor ?: "") }
     var capacity by remember { mutableStateOf(existingBrv?.capacity?.toString() ?: "") }
 
     // Validation errors — null means no error
     var plateError by remember { mutableStateOf<String?>(null) }
     var driverError by remember { mutableStateOf<String?>(null) }
-    var phoneError by remember { mutableStateOf<String?>(null) }
-    var vendorError by remember { mutableStateOf<String?>(null) }
     var capacityError by remember { mutableStateOf<String?>(null) }
 
     fun validate(): Boolean {
         plateError = if (plate.isBlank()) "Plate number is required" else null
         driverError = if (driver.isBlank()) "Driver name is required" else null
-        phoneError = when {
-            phone.isBlank() -> "Phone number is required"
-            !phone.matches(Regex("^[+]?\\d{7,15}$")) -> "Enter a valid phone number"
-            else -> null
-        }
-        vendorError = if (vendor.isBlank()) "Vendor is required" else null
         capacityError = when {
             capacity.isBlank() -> "Capacity is required"
             capacity.toBigDecimalOrNull() == null || capacity.toBigDecimal() <= java.math.BigDecimal.ZERO -> "Enter a valid capacity > 0"
             else -> null
         }
-        return listOf(plateError, driverError, phoneError, vendorError, capacityError).all { it == null }
+        return listOf(plateError, driverError, capacityError).all { it == null }
     }
 
     ContentDialog(
@@ -365,7 +350,7 @@ fun AddBRVDialog(
         visible = true,
         onButtonClick = {
             if (it == ContentDialogButton.Primary) {
-                if (validate()) onConfirm(plate, driver, phone, vendor, capacity.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO)
+                if (validate()) onConfirm(plate, driver, capacity.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO)
             } else {
                 onDismiss()
             }
@@ -391,25 +376,6 @@ fun AddBRVDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (driverError != null) Text(driverError!!, color = FluentTheme.colors.system.critical, fontSize = 12.sp)
-                Spacer(Modifier.height(8.dp))
-                ABLogisticsTextField(
-                    value = phone,
-                    onValueChange = { phone = it; if (it.isNotBlank()) phoneError = null },
-                    header = { Text("Driver Phone *") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                if (phoneError != null) Text(phoneError!!, color = FluentTheme.colors.system.critical, fontSize = 12.sp)
-                Spacer(Modifier.height(8.dp))
-                ABLogisticsTextField(
-                    value = vendor,
-                    onValueChange = { vendor = it; if (it.isNotBlank()) vendorError = null },
-                    header = { Text("Vendor *") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                if (vendorError != null) Text(vendorError!!, color = FluentTheme.colors.system.critical, fontSize = 12.sp)
                 Spacer(Modifier.height(8.dp))
                 ABLogisticsTextField(
                     value = capacity,
