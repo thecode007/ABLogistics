@@ -19,11 +19,12 @@ import javax.swing.filechooser.FileNameExtensionFilter
 
 object PdfExporter {
 
-    fun generateLoadInvoice(load: ReceiptResponse) {
+    fun generateLoadInvoice(load: ReceiptResponse, partner: ReceiptResponse? = null) {
         val fileChooser = JFileChooser()
         fileChooser.dialogTitle = "Save Invoice PDF"
         fileChooser.fileFilter = FileNameExtensionFilter("PDF Files", "pdf")
-        fileChooser.selectedFile = File("Invoice_${load.receiptId ?: load.id}.pdf")
+        val baseId = load.receiptId?.removeSuffix("-D") ?: load.id.toString()
+        fileChooser.selectedFile = File("Invoice_${baseId}.pdf")
 
         val userSelection = fileChooser.showSaveDialog(null)
         if (userSelection != JFileChooser.APPROVE_OPTION) return
@@ -46,7 +47,6 @@ object PdfExporter {
 
             // Logo (Left)
             try {
-                // Look for the logo in resources or specific path
                 val logoPath = "composeApp/src/commonMain/composeResources/drawable/ab_logo.png"
                 val logo = Image.getInstance(logoPath)
                 logo.scaleToFit(80f, 80f)
@@ -55,7 +55,7 @@ object PdfExporter {
                 logoCell.horizontalAlignment = Element.ALIGN_LEFT
                 headerTable.addCell(logoCell)
             } catch (e: Exception) {
-                headerTable.addCell("") // Placeholder if logo fails
+                headerTable.addCell("")
             }
 
             // Company Info (Middle)
@@ -89,7 +89,7 @@ object PdfExporter {
             val noFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12f, Color.RED)
             val dateFont = FontFactory.getFont(FontFactory.HELVETICA, 12f, Color.BLACK)
             
-            val pNo = Paragraph("NO: ${load.receiptId ?: load.id}", noFont)
+            val pNo = Paragraph("NO: $baseId", noFont)
             pNo.alignment = Element.ALIGN_RIGHT
             rightInfo.addElement(pNo)
             
@@ -151,11 +151,6 @@ object PdfExporter {
             addHeaderCell("UNIT PRICE")
             addHeaderCell("AMOUNT")
 
-            // Data Row
-            val qty = load.dispatchedQuantity ?: load.loadedQuantity ?: BigDecimal.ZERO
-            val unitPrice = load.sellingPrice ?: BigDecimal.ZERO
-            val amount = load.amount
-
             fun addDataCell(text: String, align: Int = Element.ALIGN_CENTER) {
                 val cell = PdfPCell(Phrase(text, detailsFont))
                 cell.horizontalAlignment = align
@@ -164,13 +159,83 @@ object PdfExporter {
                 table.addCell(cell)
             }
 
-            addDataCell(qty.setScale(2, java.math.RoundingMode.HALF_UP).toString())
-            addDataCell(load.materialType?.name ?: "Logistics Services", Element.ALIGN_LEFT)
-            addDataCell(unitPrice.setScale(2, java.math.RoundingMode.HALF_UP).toString())
-            addDataCell(amount.setScale(2, java.math.RoundingMode.HALF_UP).toString())
+            var lineCount = 0
+            var runningTotal = BigDecimal.ZERO
 
-            // Add some empty rows to mimic the image look
-            for (i in 1..8) {
+            if (load.material == "MIXED") {
+                // Unified mixed load receipt
+                val fuelQty = load.fuelDispatchedQuantity ?: load.fuelQuantity ?: BigDecimal.ZERO
+                val fuelSp = load.fuelSellingPrice ?: BigDecimal.ZERO
+                val fuelAmt = fuelQty.multiply(fuelSp)
+                if (fuelQty > BigDecimal.ZERO) {
+                    addDataCell(fuelQty.setScale(2, java.math.RoundingMode.HALF_UP).toString())
+                    addDataCell("FUEL", Element.ALIGN_LEFT)
+                    addDataCell(fuelSp.setScale(2, java.math.RoundingMode.HALF_UP).toString())
+                    addDataCell(fuelAmt.setScale(2, java.math.RoundingMode.HALF_UP).toString())
+                    runningTotal = runningTotal.add(fuelAmt)
+                    lineCount++
+                }
+
+                val dieselQty = load.dieselDispatchedQuantity ?: load.dieselQuantity ?: BigDecimal.ZERO
+                val dieselSp = load.dieselSellingPrice ?: BigDecimal.ZERO
+                val dieselAmt = dieselQty.multiply(dieselSp)
+                if (dieselQty > BigDecimal.ZERO) {
+                    addDataCell(dieselQty.setScale(2, java.math.RoundingMode.HALF_UP).toString())
+                    addDataCell("DIESEL", Element.ALIGN_LEFT)
+                    addDataCell(dieselSp.setScale(2, java.math.RoundingMode.HALF_UP).toString())
+                    addDataCell(dieselAmt.setScale(2, java.math.RoundingMode.HALF_UP).toString())
+                    runningTotal = runningTotal.add(dieselAmt)
+                    lineCount++
+                }
+
+                val brvCost = load.brvCost ?: BigDecimal.ZERO
+                if (brvCost > BigDecimal.ZERO) {
+                    addDataCell("1")
+                    addDataCell("DELIVERY COST", Element.ALIGN_LEFT)
+                    addDataCell(brvCost.setScale(2, java.math.RoundingMode.HALF_UP).toString())
+                    addDataCell(brvCost.setScale(2, java.math.RoundingMode.HALF_UP).toString())
+                    runningTotal = runningTotal.add(brvCost)
+                    lineCount++
+                }
+            } else {
+                // Standard single material load
+                val qty1 = load.dispatchedQuantity ?: load.loadedQuantity ?: BigDecimal.ZERO
+                val unitPrice1 = load.sellingPrice ?: BigDecimal.ZERO
+                val amt1 = qty1.multiply(unitPrice1)
+                addDataCell(qty1.setScale(2, java.math.RoundingMode.HALF_UP).toString())
+                addDataCell(load.materialType?.name ?: "Logistics Services", Element.ALIGN_LEFT)
+                addDataCell(unitPrice1.setScale(2, java.math.RoundingMode.HALF_UP).toString())
+                addDataCell(amt1.setScale(2, java.math.RoundingMode.HALF_UP).toString())
+                runningTotal = runningTotal.add(amt1)
+                lineCount++
+
+                // Partner load (only if legacy mixed dual receipt exists)
+                if (partner != null) {
+                    val qty2 = partner.dispatchedQuantity ?: partner.loadedQuantity ?: BigDecimal.ZERO
+                    val unitPrice2 = partner.sellingPrice ?: BigDecimal.ZERO
+                    val amt2 = qty2.multiply(unitPrice2)
+                    addDataCell(qty2.setScale(2, java.math.RoundingMode.HALF_UP).toString())
+                    addDataCell(partner.materialType?.name ?: "Logistics Services", Element.ALIGN_LEFT)
+                    addDataCell(unitPrice2.setScale(2, java.math.RoundingMode.HALF_UP).toString())
+                    addDataCell(amt2.setScale(2, java.math.RoundingMode.HALF_UP).toString())
+                    runningTotal = runningTotal.add(amt2)
+                    lineCount++
+                }
+
+                val totalDelivery = (load.brvCost ?: BigDecimal.ZERO).add(partner?.brvCost ?: BigDecimal.ZERO)
+                if (totalDelivery > BigDecimal.ZERO) {
+                    addDataCell("1")
+                    addDataCell("DELIVERY COST", Element.ALIGN_LEFT)
+                    addDataCell(totalDelivery.setScale(2, java.math.RoundingMode.HALF_UP).toString())
+                    addDataCell(totalDelivery.setScale(2, java.math.RoundingMode.HALF_UP).toString())
+                    runningTotal = runningTotal.add(totalDelivery)
+                    lineCount++
+                }
+            }
+
+            // Fill blank lines
+            val targetLines = 9
+            for (i in lineCount until targetLines) {
                 addDataCell("")
                 addDataCell("")
                 addDataCell("")
@@ -184,7 +249,7 @@ object PdfExporter {
             totalCellLabel.setPadding(5f)
             table.addCell(totalCellLabel)
 
-            val totalCellValue = PdfPCell(Phrase(amount.setScale(2, java.math.RoundingMode.HALF_UP).toString(), boldDetailsFont))
+            val totalCellValue = PdfPCell(Phrase(runningTotal.setScale(2, java.math.RoundingMode.HALF_UP).toString(), boldDetailsFont))
             totalCellValue.horizontalAlignment = Element.ALIGN_CENTER
             totalCellValue.setPadding(5f)
             table.addCell(totalCellValue)
@@ -193,7 +258,7 @@ object PdfExporter {
 
             // Footer Section
             document.add(Paragraph("\n"))
-            val amountInWords = NumberToWords.convert(amount.toLong())
+            val amountInWords = NumberToWords.convert(runningTotal.toLong())
             val pWords = Paragraph()
             pWords.add(Chunk("Amount in words: ", boldDetailsFont))
             pWords.add(Chunk("$amountInWords Only", detailsFont))
@@ -219,6 +284,9 @@ object PdfExporter {
         } finally {
             document.close()
         }
+        
+        // Auto-open PDF
+        openFile(file)
     }
 
     private fun openFile(file: File) {

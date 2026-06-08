@@ -220,8 +220,8 @@ fun FleetScreen(
         DeliveryFinalizationDialog(
             receipt = receiptToFinalize!!,
             onDismiss = { receiptToFinalize = null },
-            onConfirm = { qty ->
-                viewModel.finalizeDelivery(receiptToFinalize!!.id, qty) {
+            onConfirm = { qty, fuelQty, dieselQty ->
+                viewModel.finalizeDelivery(receiptToFinalize!!.id, qty, fuelQty, dieselQty) {
                     receiptToFinalize = null
                     showHistoryDialog = false
                 }

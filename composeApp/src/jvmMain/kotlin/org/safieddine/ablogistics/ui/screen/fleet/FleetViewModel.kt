@@ -120,11 +120,24 @@ class FleetViewModel(
         }
     }
 
-    fun finalizeDelivery(customerReceiptId: Long, dispatchedQuantity: java.math.BigDecimal, onSuccess: () -> Unit) {
+    fun finalizeDelivery(
+        customerReceiptId: Long,
+        dispatchedQuantity: java.math.BigDecimal,
+        fuelDispatchedQty: java.math.BigDecimal? = null,
+        dieselDispatchedQty: java.math.BigDecimal? = null,
+        onSuccess: () -> Unit
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             try {
-                val result = brvService.finalizeDelivery(org.safieddine.ablogistics.data.FinalizeDeliveryRequest(customerReceiptId, dispatchedQuantity))
+                val result = brvService.finalizeDelivery(
+                    org.safieddine.ablogistics.data.FinalizeDeliveryRequest(
+                        customerReceiptId,
+                        dispatchedQuantity,
+                        fuelDispatchedQty,
+                        dieselDispatchedQty
+                    )
+                )
                 if (result.isSuccess) {
                     loadFleetStatus()
                     onSuccess()

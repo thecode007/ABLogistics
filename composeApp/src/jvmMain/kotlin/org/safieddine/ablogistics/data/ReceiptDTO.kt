@@ -65,6 +65,22 @@ data class ReceiptResponse(
     val destinationCustomerId: Long? = null,
     val linkedReceiptId: Long? = null,
     val brvPlateNumber: String? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val fuelQuantity: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val dieselQuantity: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val fuelCostPrice: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val dieselCostPrice: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val fuelSellingPrice: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val dieselSellingPrice: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val fuelDispatchedQuantity: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val dieselDispatchedQuantity: BigDecimal? = null,
     val createdBy: String,
     val createdAt: String?
 )
@@ -87,8 +103,30 @@ data class UpdateReceiptRequest(
     val amount: BigDecimal,
     val description: String? = null,
     val customerId: Long? = null,
+    val materialType: MaterialType? = null,
+    val material: String? = null,
     val returned: Boolean? = null,
-    val createdAtMillis: Long? = null
+    val createdAtMillis: Long? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val fuelQuantity: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val dieselQuantity: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val fuelCostPrice: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val dieselCostPrice: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val fuelSellingPrice: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val dieselSellingPrice: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val fuelDispatchedQuantity: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val dieselDispatchedQuantity: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val costPrice: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val sellingPrice: BigDecimal? = null
 )
 
 @Serializable

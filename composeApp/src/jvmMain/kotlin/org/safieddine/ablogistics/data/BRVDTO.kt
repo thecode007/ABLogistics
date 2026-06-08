@@ -36,24 +36,40 @@ data class ProcessLoadRequest(
     val brvId: Long,
     val customerId: Long,
     val warehouseId: Long,
-    val materialType: MaterialType,
+    val materialType: MaterialType?,
     val material: String? = null,
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val loadedQuantity: BigDecimal,
     @Serializable(with = BigDecimalAsStringSerializer::class)
-    val costPrice: BigDecimal,
+    val costPrice: BigDecimal? = null,
     @Serializable(with = BigDecimalAsStringSerializer::class)
-    val sellingPrice: BigDecimal,
+    val sellingPrice: BigDecimal? = null,
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val brvCost: BigDecimal,
     val description: String? = null,
     val receiptId: String,
-    val createdAtMillis: Long? = null
+    val createdAtMillis: Long? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val fuelQuantity: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val dieselQuantity: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val fuelCostPrice: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val dieselCostPrice: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val fuelSellingPrice: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val dieselSellingPrice: BigDecimal? = null
 )
 
 @Serializable
 data class FinalizeDeliveryRequest(
     val customerReceiptId: Long,
     @Serializable(with = BigDecimalAsStringSerializer::class)
-    val dispatchedQuantity: BigDecimal
+    val dispatchedQuantity: BigDecimal,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val fuelDispatchedQuantity: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val dieselDispatchedQuantity: BigDecimal? = null
 )

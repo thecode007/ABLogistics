@@ -27,24 +27,48 @@ import java.math.RoundingMode
 fun DeliveryFinalizationDialog(
     receipt: ReceiptResponse,
     onDismiss: () -> Unit,
-    onConfirm: (BigDecimal) -> Unit,
+    onConfirm: (BigDecimal, BigDecimal?, BigDecimal?) -> Unit,
     isLoading: Boolean = false
 ) {
+    val isMixed = receipt.material == "MIXED"
+
+    var fuelDispatchedStr by remember { mutableStateOf(receipt.fuelQuantity?.setScale(2, RoundingMode.HALF_UP)?.toPlainString() ?: "") }
+    var dieselDispatchedStr by remember { mutableStateOf(receipt.dieselQuantity?.setScale(2, RoundingMode.HALF_UP)?.toPlainString() ?: "") }
     var dispatchedStr by remember { mutableStateOf(receipt.loadedQuantity?.setScale(2, RoundingMode.HALF_UP)?.toPlainString() ?: "") }
+
     val loadedQty = receipt.loadedQuantity ?: BigDecimal.ZERO
+    val fuelLoaded = receipt.fuelQuantity ?: BigDecimal.ZERO
+    val dieselLoaded = receipt.dieselQuantity ?: BigDecimal.ZERO
+
+    val fuelDispatchedQty = fuelDispatchedStr.toBigDecimalOrNull() ?: BigDecimal.ZERO
+    val dieselDispatchedQty = dieselDispatchedStr.toBigDecimalOrNull() ?: BigDecimal.ZERO
+    val dispatchedQty = if (isMixed) fuelDispatchedQty.add(dieselDispatchedQty) else (dispatchedStr.toBigDecimalOrNull() ?: BigDecimal.ZERO)
+
+    val fuelCostPrice = receipt.fuelCostPrice ?: BigDecimal.ZERO
+    val dieselCostPrice = receipt.dieselCostPrice ?: BigDecimal.ZERO
     val costPrice = receipt.costPrice ?: BigDecimal.ZERO
-    
-    val dispatchedQty = dispatchedStr.toBigDecimalOrNull() ?: BigDecimal.ZERO
-    val shortage = if (dispatchedQty < loadedQty) loadedQty.subtract(dispatchedQty) else BigDecimal.ZERO
-    val penalty = shortage.multiply(costPrice).setScale(4, RoundingMode.HALF_UP)
+
+    val fuelShortage = if (isMixed && fuelDispatchedQty < fuelLoaded) fuelLoaded.subtract(fuelDispatchedQty) else BigDecimal.ZERO
+    val dieselShortage = if (isMixed && dieselDispatchedQty < dieselLoaded) dieselLoaded.subtract(dieselDispatchedQty) else BigDecimal.ZERO
+    val shortage = if (isMixed) fuelShortage.add(dieselShortage) else (if (dispatchedQty < loadedQty) loadedQty.subtract(dispatchedQty) else BigDecimal.ZERO)
+
+    val penalty = if (isMixed) fuelShortage.multiply(fuelCostPrice).add(dieselShortage.multiply(dieselCostPrice)).setScale(4, RoundingMode.HALF_UP)
+                  else shortage.multiply(costPrice).setScale(4, RoundingMode.HALF_UP)
 
     ContentDialog(
         title = "Finalize Delivery",
         visible = true,
         onButtonClick = { btn ->
             if (btn == ContentDialogButton.Primary) {
-                if (dispatchedQty > BigDecimal.ZERO && dispatchedQty <= loadedQty) {
-                    onConfirm(dispatchedQty)
+                if (isMixed) {
+                    if (fuelDispatchedQty > BigDecimal.ZERO && fuelDispatchedQty <= fuelLoaded &&
+                        dieselDispatchedQty > BigDecimal.ZERO && dieselDispatchedQty <= dieselLoaded) {
+                        onConfirm(dispatchedQty, fuelDispatchedQty, dieselDispatchedQty)
+                    }
+                } else {
+                    if (dispatchedQty > BigDecimal.ZERO && dispatchedQty <= loadedQty) {
+                        onConfirm(dispatchedQty, null, null)
+                    }
                 }
             } else {
                 onDismiss()
@@ -57,19 +81,48 @@ fun DeliveryFinalizationDialog(
                 Text("Confirm actual liters delivered to customer.", style = FluentTheme.typography.body)
                 Spacer(Modifier.height(16.dp))
                 
-                Text("Loaded Quantity: ${loadedQty.setScale(2, RoundingMode.HALF_UP)} L", style = FluentTheme.typography.bodyStrong)
-                Spacer(Modifier.height(8.dp))
+                if (isMixed) {
+                    Text("Loaded Fuel: ${fuelLoaded.setScale(2, RoundingMode.HALF_UP)} L", style = FluentTheme.typography.bodyStrong)
+                    Spacer(Modifier.height(4.dp))
+                    ABLogisticsTextField(
+                        value = fuelDispatchedStr,
+                        onValueChange = { fuelDispatchedStr = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                        header = { Text("Dispatched Fuel Liters") },
+                        visualTransformation = NumberCommaTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (fuelDispatchedQty > fuelLoaded) {
+                        Text("Error: Fuel cannot exceed loaded quantity", color = FluentTheme.colors.system.critical, style = FluentTheme.typography.caption)
+                    }
+                    
+                    Spacer(Modifier.height(16.dp))
 
-                ABLogisticsTextField(
-                    value = dispatchedStr,
-                    onValueChange = { dispatchedStr = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                    header = { Text("Dispatched Liters") },
-                    visualTransformation = NumberCommaTransformation(),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
-                if (dispatchedQty > loadedQty) {
-                    Text("Error: Cannot exceed loaded quantity", color = FluentTheme.colors.system.critical, style = FluentTheme.typography.caption)
+                    Text("Loaded Diesel: ${dieselLoaded.setScale(2, RoundingMode.HALF_UP)} L", style = FluentTheme.typography.bodyStrong)
+                    Spacer(Modifier.height(4.dp))
+                    ABLogisticsTextField(
+                        value = dieselDispatchedStr,
+                        onValueChange = { dieselDispatchedStr = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                        header = { Text("Dispatched Diesel Liters") },
+                        visualTransformation = NumberCommaTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (dieselDispatchedQty > dieselLoaded) {
+                        Text("Error: Diesel cannot exceed loaded quantity", color = FluentTheme.colors.system.critical, style = FluentTheme.typography.caption)
+                    }
+                } else {
+                    Text("Loaded Quantity: ${loadedQty.setScale(2, RoundingMode.HALF_UP)} L", style = FluentTheme.typography.bodyStrong)
+                    Spacer(Modifier.height(8.dp))
+
+                    ABLogisticsTextField(
+                        value = dispatchedStr,
+                        onValueChange = { dispatchedStr = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                        header = { Text("Dispatched Liters") },
+                        visualTransformation = NumberCommaTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (dispatchedQty > loadedQty) {
+                        Text("Error: Cannot exceed loaded quantity", color = FluentTheme.colors.system.critical, style = FluentTheme.typography.caption)
+                    }
                 }
                 
                 Spacer(Modifier.height(24.dp))
@@ -86,18 +139,21 @@ fun DeliveryFinalizationDialog(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Filled.Warning, contentDescription = null, tint = FluentTheme.colors.system.critical, modifier = Modifier.size(20.dp))
                                 Spacer(Modifier.width(8.dp))
-                                Text("Shortage Accountability", style = FluentTheme.typography.bodyStrong, color = FluentTheme.colors.system.critical)
+                                val text = if (isMixed) "Shortage Accountability (Mixed)" else "Shortage Accountability"
+                                Text(text, style = FluentTheme.typography.bodyStrong, color = FluentTheme.colors.system.critical)
                             }
                             Spacer(Modifier.height(8.dp))
                             Text("The actual quantity delivered is less than loaded. A penalty will be applied.", style = FluentTheme.typography.caption)
                             Spacer(Modifier.height(12.dp))
                             
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Shortage Amount:", style = FluentTheme.typography.body)
+                                Text("Total Shortage Amount:", style = FluentTheme.typography.body)
                                 Text("${shortage.setScale(2, RoundingMode.HALF_UP)} L", style = FluentTheme.typography.bodyStrong)
                             }
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Penalty ($loadedQty - $dispatchedQty) * $costPrice:", style = FluentTheme.typography.caption)
+                                val penaltyLabel = if (isMixed) "Penalty (Fuel: ${fuelLoaded - fuelDispatchedQty}*${fuelCostPrice} + Diesel: ${dieselLoaded - dieselDispatchedQty}*${dieselCostPrice}):" 
+                                                   else "Penalty ($loadedQty - $dispatchedQty) * $costPrice:"
+                                Text(penaltyLabel, style = FluentTheme.typography.caption)
                                 Text("- ${formatLocalized(penalty)}", style = FluentTheme.typography.bodyStrong, color = FluentTheme.colors.system.critical)
                             }
                             

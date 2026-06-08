@@ -184,6 +184,7 @@ fun DirectLoadEntryScreen(viewModel: DirectLoadViewModel = remember { DirectLoad
                         items(loads) { load ->
                             LoadRow(
                                 load = load,
+                                loads = loads,
                                 onFinalize = { finalizingLoad = it },
                                 onEdit = { 
                                     viewModel.prepareEdit(it)
@@ -243,8 +244,8 @@ fun DirectLoadEntryScreen(viewModel: DirectLoadViewModel = remember { DirectLoad
         DeliveryFinalizationDialog(
             receipt = load,
             onDismiss = { finalizingLoad = null },
-            onConfirm = { qty ->
-                viewModel.finalizeLoad(selectedWarehouse?.id ?: 0L, load.id, qty)
+            onConfirm = { qty, fuelQty, dieselQty ->
+                viewModel.finalizeLoad(selectedWarehouse?.id ?: 0L, load.id, qty, fuelQty, dieselQty)
             },
             isLoading = isFinalizing
         )
@@ -264,6 +265,7 @@ fun TableHeader(text: String, modifier: Modifier) {
 @Composable
 fun LoadRow(
     load: ReceiptResponse,
+    loads: List<ReceiptResponse>,
     onFinalize: (ReceiptResponse) -> Unit,
     onEdit: (ReceiptResponse) -> Unit,
     onReverse: (ReceiptResponse) -> Unit,
@@ -271,9 +273,10 @@ fun LoadRow(
 ) {
     val isFinalized = load.dispatchedQuantity != null && load.dispatchedQuantity != BigDecimal.ZERO
     
-    val rowBg = when (load.materialType) {
-        MaterialType.DIESEL -> Color(0xFFD2B48C).copy(alpha = 0.25f)
-        MaterialType.FUEL -> Color(0xFFADD8E6).copy(alpha = 0.25f)
+    val rowBg = when {
+        load.material == "MIXED" -> Color(0xFFDDA0DD).copy(alpha = 0.25f)
+        load.materialType == MaterialType.DIESEL -> Color(0xFFD2B48C).copy(alpha = 0.25f)
+        load.materialType == MaterialType.FUEL -> Color(0xFFADD8E6).copy(alpha = 0.25f)
         else -> Color.Transparent
     }
 
@@ -308,18 +311,44 @@ fun LoadRow(
             textAlign = TextAlign.Center,
             style = FluentTheme.typography.body
         )
-        Text(
-            "${load.loadedQuantity?.setScale(2, java.math.RoundingMode.HALF_UP) ?: 0} L",
-            Modifier.weight(1f),
-            textAlign = TextAlign.Center,
-            style = FluentTheme.typography.body
-        )
-        Text(
-            if (isFinalized) "${load.dispatchedQuantity?.setScale(2, java.math.RoundingMode.HALF_UP)} L" else "-",
-            Modifier.weight(1f),
-            textAlign = TextAlign.Center,
-            style = FluentTheme.typography.body
-        )
+        
+        // Loaded Quantity
+        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                "${load.loadedQuantity?.setScale(2, java.math.RoundingMode.HALF_UP) ?: 0} L",
+                style = FluentTheme.typography.body
+            )
+            if (load.material == "MIXED") {
+                val f = load.fuelQuantity?.setScale(0, java.math.RoundingMode.HALF_UP) ?: 0
+                val d = load.dieselQuantity?.setScale(0, java.math.RoundingMode.HALF_UP) ?: 0
+                Text(
+                    "F:$f / D:$d",
+                    style = FluentTheme.typography.caption.copy(fontSize = 10.sp),
+                    color = FluentTheme.colors.text.accent.secondary
+                )
+            }
+        }
+
+        // Dispatched Quantity
+        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+            if (isFinalized) {
+                Text(
+                    "${load.dispatchedQuantity?.setScale(2, java.math.RoundingMode.HALF_UP)} L",
+                    style = FluentTheme.typography.body
+                )
+                if (load.material == "MIXED") {
+                    val f = load.fuelDispatchedQuantity?.setScale(0, java.math.RoundingMode.HALF_UP) ?: 0
+                    val d = load.dieselDispatchedQuantity?.setScale(0, java.math.RoundingMode.HALF_UP) ?: 0
+                    Text(
+                        "F:$f / D:$d",
+                        style = FluentTheme.typography.caption.copy(fontSize = 10.sp),
+                        color = FluentTheme.colors.text.accent.secondary
+                    )
+                }
+            } else {
+                Text("-", style = FluentTheme.typography.body)
+            }
+        }
         
         // Status Tag
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -381,7 +410,16 @@ fun LoadRow(
                 
                 Spacer(Modifier.width(6.dp))
                 ABLogisticsSubtleButton(
-                    onClick = { PdfExporter.generateLoadInvoice(load) },
+                    onClick = { 
+                        val partner = if (load.material != "MIXED" && load.receiptId != null) {
+                            if (load.receiptId.endsWith("-D")) {
+                                loads.find { it.receiptId == load.receiptId.removeSuffix("-D") }
+                            } else {
+                                loads.find { it.receiptId == "${load.receiptId}-D" }
+                            }
+                        } else null
+                        PdfExporter.generateLoadInvoice(load, partner) 
+                    },
                     modifier = Modifier.height(28.dp),
                     iconOnly = true
                 ) {
@@ -425,74 +463,225 @@ fun LoadEntryForm(
         Text("Material Type", style = FluentTheme.typography.bodyStrong)
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth()) {
-            MaterialType.values().forEach { type ->
-                if (viewModel.selectedMaterial == type) {
-                    ABLogisticsAccentButton(
-                        onClick = { viewModel.onMaterialChanged(type) },
-                        modifier = Modifier.weight(1f),
-                        disabled = viewModel.isPaymentOnlyEdit
-                    ) {
-                        Text(type.name)
-                    }
-                } else {
-                    ABLogisticsSubtleButton(
-                        onClick = { viewModel.onMaterialChanged(type) },
-                        modifier = Modifier.weight(1f),
-                        disabled = viewModel.isPaymentOnlyEdit
-                    ) {
-                        Text(type.name)
-                    }
+            // FUEL Button
+            if (viewModel.selectedMaterial == MaterialType.FUEL && !viewModel.isMixedLoad) {
+                ABLogisticsAccentButton(
+                    onClick = { 
+                        viewModel.isMixedLoad = false
+                        viewModel.onMaterialChanged(MaterialType.FUEL) 
+                    },
+                    modifier = Modifier.weight(1f),
+                    disabled = viewModel.isPaymentOnlyEdit
+                ) {
+                    Text("FUEL")
                 }
-                if (type != MaterialType.values().last()) Spacer(Modifier.width(8.dp))
+            } else {
+                ABLogisticsSubtleButton(
+                    onClick = { 
+                        viewModel.isMixedLoad = false
+                        viewModel.onMaterialChanged(MaterialType.FUEL) 
+                    },
+                    modifier = Modifier.weight(1f),
+                    disabled = viewModel.isPaymentOnlyEdit
+                ) {
+                    Text("FUEL")
+                }
+            }
+            Spacer(Modifier.width(8.dp))
+            // DIESEL Button
+            if (viewModel.selectedMaterial == MaterialType.DIESEL && !viewModel.isMixedLoad) {
+                ABLogisticsAccentButton(
+                    onClick = { 
+                        viewModel.isMixedLoad = false
+                        viewModel.onMaterialChanged(MaterialType.DIESEL) 
+                    },
+                    modifier = Modifier.weight(1f),
+                    disabled = viewModel.isPaymentOnlyEdit
+                ) {
+                    Text("DIESEL")
+                }
+            } else {
+                ABLogisticsSubtleButton(
+                    onClick = { 
+                        viewModel.isMixedLoad = false
+                        viewModel.onMaterialChanged(MaterialType.DIESEL) 
+                    },
+                    modifier = Modifier.weight(1f),
+                    disabled = viewModel.isPaymentOnlyEdit
+                ) {
+                    Text("DIESEL")
+                }
+            }
+            Spacer(Modifier.width(8.dp))
+            // MIXED Button
+            if (viewModel.isMixedLoad) {
+                ABLogisticsAccentButton(
+                    onClick = { 
+                        viewModel.isMixedLoad = true
+                        viewModel.autoFillPrices(viewModel.selectedMaterial, org.safieddine.ablogistics.data.session.GlobalPriceStore.prices.value)
+                    },
+                    modifier = Modifier.weight(1f),
+                    disabled = viewModel.isPaymentOnlyEdit
+                ) {
+                    Text("MIXED")
+                }
+            } else {
+                ABLogisticsSubtleButton(
+                    onClick = { 
+                        viewModel.isMixedLoad = true
+                        viewModel.autoFillPrices(viewModel.selectedMaterial, org.safieddine.ablogistics.data.session.GlobalPriceStore.prices.value)
+                    },
+                    modifier = Modifier.weight(1f),
+                    disabled = viewModel.isPaymentOnlyEdit
+                ) {
+                    Text("MIXED")
+                }
             }
         }
         
         Spacer(Modifier.height(24.dp))
 
-        Row(Modifier.fillMaxWidth()) {
-            ABLogisticsTextField(
-                value = viewModel.loadedQuantity,
-                onValueChange = { 
-                    viewModel.loadedQuantity = it.filter { ch -> ch.isDigit() || ch == '.' }
-                    viewModel.updateCalculations()
-                },
-                header = { Text("Loaded Quantity (L)") },
-                visualTransformation = NumberCommaTransformation(),
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                enabled = !viewModel.isPaymentOnlyEdit
-            )
-            Spacer(Modifier.width(16.dp))
-            ABLogisticsTextField(
-                value = viewModel.costPrice,
-                onValueChange = { 
-                    viewModel.costPrice = it.filter { ch -> ch.isDigit() || ch == '.' }
-                    viewModel.updateCalculations()
-                },
-                header = { Text("Cost Price / L") },
-                visualTransformation = NumberCommaTransformation(),
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                enabled = !viewModel.isPaymentOnlyEdit
-            )
-        }
-        
-        Spacer(Modifier.height(16.dp))
+        if (viewModel.isMixedLoad) {
+            Text("Fuel Details", style = FluentTheme.typography.bodyStrong, color = FluentTheme.colors.text.accent.secondary)
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth()) {
+                ABLogisticsTextField(
+                    value = viewModel.loadedQuantity,
+                    onValueChange = { 
+                        viewModel.loadedQuantity = it.filter { ch -> ch.isDigit() || ch == '.' }
+                        viewModel.updateCalculations()
+                    },
+                    header = { Text("Loaded Quantity (L)") },
+                    visualTransformation = NumberCommaTransformation(),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                Spacer(Modifier.width(12.dp))
+                ABLogisticsTextField(
+                    value = viewModel.costPrice,
+                    onValueChange = { 
+                        viewModel.costPrice = it.filter { ch -> ch.isDigit() || ch == '.' }
+                        viewModel.updateCalculations()
+                    },
+                    header = { Text("Cost Price / L") },
+                    visualTransformation = NumberCommaTransformation(),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                Spacer(Modifier.width(12.dp))
+                ABLogisticsTextField(
+                    value = viewModel.sellingPrice,
+                    onValueChange = { 
+                        viewModel.sellingPrice = it.filter { ch -> ch.isDigit() || ch == '.' }
+                        viewModel.updateCalculations()
+                    },
+                    header = { Text("Selling Price / L") },
+                    visualTransformation = NumberCommaTransformation(),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
 
-        Row(Modifier.fillMaxWidth()) {
+            Spacer(Modifier.height(16.dp))
+
+            Text("Diesel Details", style = FluentTheme.typography.bodyStrong, color = FluentTheme.colors.text.accent.secondary)
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth()) {
+                ABLogisticsTextField(
+                    value = viewModel.loadedQuantityDiesel,
+                    onValueChange = { 
+                        viewModel.loadedQuantityDiesel = it.filter { ch -> ch.isDigit() || ch == '.' }
+                        viewModel.updateCalculations()
+                    },
+                    header = { Text("Loaded Quantity (L)") },
+                    visualTransformation = NumberCommaTransformation(),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                Spacer(Modifier.width(12.dp))
+                ABLogisticsTextField(
+                    value = viewModel.costPriceDiesel,
+                    onValueChange = { 
+                        viewModel.costPriceDiesel = it.filter { ch -> ch.isDigit() || ch == '.' }
+                        viewModel.updateCalculations()
+                    },
+                    header = { Text("Cost Price / L") },
+                    visualTransformation = NumberCommaTransformation(),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                Spacer(Modifier.width(12.dp))
+                ABLogisticsTextField(
+                    value = viewModel.sellingPriceDiesel,
+                    onValueChange = { 
+                        viewModel.sellingPriceDiesel = it.filter { ch -> ch.isDigit() || ch == '.' }
+                        viewModel.updateCalculations()
+                    },
+                    header = { Text("Selling Price / L") },
+                    visualTransformation = NumberCommaTransformation(),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Shared Delivery Cost
             ABLogisticsTextField(
-                value = viewModel.sellingPrice,
+                value = viewModel.brvCost,
                 onValueChange = { 
-                    viewModel.sellingPrice = it.filter { ch -> ch.isDigit() || ch == '.' }
+                    viewModel.brvCost = it.filter { ch -> ch.isDigit() || ch == '.' }
                     viewModel.updateCalculations()
                 },
-                header = { Text("Selling Price / L") },
+                header = { Text("Delivery Cost (Total)") },
                 visualTransformation = NumberCommaTransformation(),
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                enabled = !viewModel.isPaymentOnlyEdit
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
-            Spacer(Modifier.width(16.dp))
+        } else {
+            Row(Modifier.fillMaxWidth()) {
+                ABLogisticsTextField(
+                    value = viewModel.loadedQuantity,
+                    onValueChange = { 
+                        viewModel.loadedQuantity = it.filter { ch -> ch.isDigit() || ch == '.' }
+                        viewModel.updateCalculations()
+                    },
+                    header = { Text("Loaded Quantity (L)") },
+                    visualTransformation = NumberCommaTransformation(),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    enabled = !viewModel.isPaymentOnlyEdit
+                )
+                Spacer(Modifier.width(12.dp))
+                ABLogisticsTextField(
+                    value = viewModel.costPrice,
+                    onValueChange = { 
+                        viewModel.costPrice = it.filter { ch -> ch.isDigit() || ch == '.' }
+                        viewModel.updateCalculations()
+                    },
+                    header = { Text("Cost Price / L") },
+                    visualTransformation = NumberCommaTransformation(),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    enabled = !viewModel.isPaymentOnlyEdit
+                )
+                Spacer(Modifier.width(12.dp))
+                ABLogisticsTextField(
+                    value = viewModel.sellingPrice,
+                    onValueChange = { 
+                        viewModel.sellingPrice = it.filter { ch -> ch.isDigit() || ch == '.' }
+                        viewModel.updateCalculations()
+                    },
+                    header = { Text("Selling Price / L") },
+                    visualTransformation = NumberCommaTransformation(),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    enabled = !viewModel.isPaymentOnlyEdit
+                )
+            }
+            
+            Spacer(Modifier.height(16.dp))
+
             ABLogisticsTextField(
                 value = viewModel.brvCost,
                 onValueChange = { 
@@ -501,7 +690,7 @@ fun LoadEntryForm(
                 },
                 header = { Text("Delivery Cost") },
                 visualTransformation = NumberCommaTransformation(),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 enabled = !viewModel.isPaymentOnlyEdit
             )
