@@ -3,6 +3,7 @@ package org.safieddine.ablogistics.data
 import org.safieddine.ablogistics.data.service.AuthService
 import org.safieddine.ablogistics.data.service.UserService
 import org.safieddine.ablogistics.data.session.SessionStore
+import org.safieddine.ablogistics.data.network.HttpClientFactory
 
 object AuthManager {
     private val authService = AuthService()
@@ -22,6 +23,7 @@ object AuthManager {
                 SessionStore.setToken(loginData.token)
                 SessionStore.setRefreshToken(loginData.refreshToken)
                 SessionStore.setCurrentUser(loginData.user)
+                HttpClientFactory.clearTokensCache()
             }
         }
 
@@ -71,11 +73,27 @@ object AuthManager {
 
     suspend fun validateCurrentToken(): Boolean {
         val token = authStorage.getToken()
+        val refreshToken = authStorage.getRefreshToken()
         return if (!token.isNullOrEmpty()) {
             try {
-               val isAuthenticated = authService.validateToken(token)
-                if (!isAuthenticated)
+                var isAuthenticated = authService.validateToken(token)
+                if (!isAuthenticated && !refreshToken.isNullOrEmpty()) {
+                    val refreshResult = authService.refreshToken(refreshToken)
+                    refreshResult.onSuccess { response ->
+                        response.data?.let { loginData ->
+                            authStorage.saveAuthData(loginData)
+                            // Sync session store
+                            SessionStore.setToken(loginData.token)
+                            SessionStore.setRefreshToken(loginData.refreshToken)
+                            SessionStore.setCurrentUser(loginData.user)
+                            HttpClientFactory.clearTokensCache()
+                            isAuthenticated = true
+                        }
+                    }
+                }
+                if (!isAuthenticated) {
                     logout()
+                }
                 isAuthenticated
             } catch (e: Exception) {
                 println(e)

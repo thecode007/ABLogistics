@@ -3,11 +3,14 @@ package org.safieddine.ablogistics.data.session
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import org.safieddine.ablogistics.data.AuthStorage
+import org.safieddine.ablogistics.data.NotificationManager
 import org.safieddine.ablogistics.data.UserResponse
 import org.safieddine.ablogistics.data.WarehouseInfo
 import org.safieddine.ablogistics.data.service.TokenProvider
 import java.util.Locale
+import org.safieddine.ablogistics.data.AuthStorage
+import org.safieddine.ablogistics.data.network.HttpClientFactory
+
 
 /**
  * Centralized session state. Exposes the current auth token, user, and selected warehouse
@@ -77,5 +80,15 @@ object SessionStore : TokenProvider {
         _refreshToken.value = null
         _currentUser.value = null
         _selectedWarehouse.value = null
+        try {
+            NotificationManager.stop()
+        } catch (e: Exception) {
+            println("Error stopping NotificationManager: ${e.message}")
+        }
+        try {
+            HttpClientFactory.clearTokensCache()
+        } catch (e: Exception) {
+            println("Error clearing token cache: ${e.message}")
+        }
     }
 }

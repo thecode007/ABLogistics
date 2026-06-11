@@ -174,12 +174,12 @@ fun WarehouseSummaryScreen() {
             Card(Modifier) {
                 Text(
                     modifier = Modifier.padding(8.dp),
-                    text = stringResource(Res.string.admin),
+                    text = "Supplier",
                     style = FluentTheme.typography.title
                 )
             }
 
-            // Arrows between Admin and Warehouse (use WAREHOUSE split totals)
+            // Arrows between Supplier and Us (use WAREHOUSE split totals)
             Column(
                 modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                 verticalArrangement = Arrangement.Center,
@@ -197,13 +197,37 @@ fun WarehouseSummaryScreen() {
                 OutboundArrow(amount = outboundWarehouse.toPlainString())
             }
 
-            Card(Modifier) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            ) {
+                val forecastedProfit = outboundCustomer.subtract(inboundWarehouse)
+                val locale = Locale.getDefault()
                 Text(
-                    modifier = Modifier.padding(8.dp),
-                    text = stringResource(Res.string.warehouse),
-                    style = FluentTheme.typography.title
+                    text = "Forecasted Profit: ${formatLocalized(forecastedProfit, locale)}",
+                    style = FluentTheme.typography.caption,
+                    fontWeight = FontWeight.Bold,
+                    color = if (forecastedProfit >= java.math.BigDecimal.ZERO) FluentTheme.colors.system.success else FluentTheme.colors.system.critical
+                )
+                Spacer(Modifier.height(8.dp))
+                Card(Modifier) {
+                    Text(
+                        modifier = Modifier.padding(8.dp),
+                        text = "Us",
+                        style = FluentTheme.typography.title
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                val profit = inboundCustomer.subtract(outboundWarehouse)
+                Text(
+                    text = "Profit: ${formatLocalized(profit, locale)}",
+                    style = FluentTheme.typography.caption,
+                    fontWeight = FontWeight.Bold,
+                    color = if (profit >= java.math.BigDecimal.ZERO) FluentTheme.colors.system.success else FluentTheme.colors.system.critical
                 )
             }
+
 
             // Extra arrows between Warehouse and Customer (use CUSTOMER split totals)
             Column(

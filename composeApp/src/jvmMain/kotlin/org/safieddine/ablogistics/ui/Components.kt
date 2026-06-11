@@ -30,6 +30,7 @@ import org.safieddine.ablogistics.ui.screen.receipts.DirectLoadEntryScreen
 import org.safieddine.ablogistics.ui.screen.receipts.ReceiptsAdminScreen
 import org.safieddine.ablogistics.ui.screen.receipts.ReceiptsCustomerScreen
 import org.safieddine.ablogistics.ui.screen.receipts.BrvPaymentsScreen
+import org.safieddine.ablogistics.ui.screen.receipts.WarehouseSummaryScreen
 import ablogistics.composeapp.generated.resources.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -118,7 +119,7 @@ fun TeamsNavigationRail() {
 
             // Financials — expandable group with nested SideNavItems
             menuItem(
-                selected = selectedScreen is AppScreen.ReceiptsCustomer || selectedScreen is AppScreen.Admin,
+                selected = selectedScreen is AppScreen.ReceiptsCustomer || selectedScreen is AppScreen.Admin || selectedScreen is AppScreen.WarehouseSummary || selectedScreen is AppScreen.BrvPayments,
                 onClick = { financialsExpanded = !financialsExpanded },
                 text = { Text("Financials") },
                 icon = { Icon(imageVector = Icons.Filled.PeopleMoney, contentDescription = "Financials") },
@@ -138,6 +139,13 @@ fun TeamsNavigationRail() {
                         onClick = { selectedScreen = AppScreen.Admin },
                         icon = { Icon(imageVector = Icons.Filled.Receipt, contentDescription = "Admin") },
                         content = { Text("Admin") }
+                    )
+                    // Warehouse Summary
+                    SideNavItem(
+                        selected = selectedScreen is AppScreen.WarehouseSummary,
+                        onClick = { selectedScreen = AppScreen.WarehouseSummary },
+                        icon = { Icon(imageVector = Icons.Filled.DocumentTableTruck, contentDescription = "Warehouse Summary") },
+                        content = { Text("Warehouse Summary") }
                     )
                     // BRV Payments
                     SideNavItem(
@@ -173,6 +181,7 @@ fun TeamsNavigationRail() {
                 is AppScreen.DirectLoad -> RailScreen("Direct Load", Icons.Regular.DocumentTableTruck) { DirectLoadEntryScreen() }
                 is AppScreen.ReceiptsCustomer -> RailScreen("Customer Receipts", Icons.Regular.Receipt) { ReceiptsCustomerScreen() }
                 is AppScreen.Admin -> RailScreen("Admin", Icons.Filled.Receipt) { ReceiptsAdminScreen() }
+                is AppScreen.WarehouseSummary -> RailScreen("Warehouse Summary", Icons.Filled.DocumentTableTruck) { WarehouseSummaryScreen() }
                 is AppScreen.BrvPayments -> BrvPaymentsScreen()
                 else -> {}
             }

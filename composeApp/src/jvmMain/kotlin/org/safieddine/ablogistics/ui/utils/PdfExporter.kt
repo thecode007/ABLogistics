@@ -93,11 +93,18 @@ object PdfExporter {
             pNo.alignment = Element.ALIGN_RIGHT
             rightInfo.addElement(pNo)
             
-            val dateStr = load.createdAt?.let {
+            val dateStr = load.createdAt?.let { s ->
                 try {
-                    val odt = OffsetDateTime.parse(it)
-                    odt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                } catch (e: Exception) { it }
+                    val odt = if (s.contains("Z") || s.contains("+") || (s.length > 10 && s.substring(10).contains("-"))) {
+                        OffsetDateTime.parse(s)
+                    } else {
+                        java.time.LocalDateTime.parse(s).atOffset(java.time.ZoneOffset.UTC)
+                    }
+                    odt.atZoneSameInstant(java.time.ZoneId.systemDefault())
+                        .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+                } catch (e: Exception) {
+                    s.take(16).replace("T", " ")
+                }
             } ?: ""
             val pDate = Paragraph("Date: $dateStr", dateFont)
             pDate.alignment = Element.ALIGN_RIGHT

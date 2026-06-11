@@ -106,4 +106,24 @@ object HttpClientFactory {
             }
         }
     }
+
+    fun clearTokensCache() {
+        try {
+            val authPlugin = httpClient.plugin(Auth)
+            val field = authPlugin::class.java.getDeclaredField("providers")
+            field.isAccessible = true
+            val providers = field.get(authPlugin) as? List<*> ?: return
+            for (provider in providers) {
+                if (provider != null) {
+                    try {
+                        val method = provider::class.java.getMethod("clearToken")
+                        method.isAccessible = true
+                        method.invoke(provider)
+                    } catch (_: Exception) {}
+                }
+            }
+        } catch (e: Exception) {
+            println("Failed to clear Ktor token cache via reflection: ${e.message}")
+        }
+    }
 }

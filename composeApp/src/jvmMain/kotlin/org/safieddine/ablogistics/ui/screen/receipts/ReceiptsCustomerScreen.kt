@@ -438,7 +438,7 @@ fun ReceiptsCustomerScreen() {
                                     }
 
                                     Spacer(Modifier.width(6.dp))
-                                    if (r.receiptType == ReceiptType.OUTWARD) {
+    /*                                if (r.receiptType == ReceiptType.OUTWARD) {
                                         IconButton(onClick = { toReturn = r }) {
                                             Icon(
                                                 Icons.Filled.ArrowBounce,
@@ -447,7 +447,7 @@ fun ReceiptsCustomerScreen() {
                                             )
                                         }
                                         Spacer(Modifier.width(6.dp))
-                                    }
+                                    } */
                                     if (!r.isReturned && r.receiptType != ReceiptType.OUTWARD)
                                         IconButton(onClick = { toDelete = r }) {
                                             Icon(

@@ -128,16 +128,36 @@ fun DashboardScreen() {
                     }
 
                     fun sumDispatched(list: List<ReceiptResponse>, type: MaterialType) =
-                        list.filter { it.materialType == type }
-                            .fold(BigDecimal.ZERO) { acc, r ->
-                                acc.add(r.dispatchedQuantity ?: BigDecimal.ZERO)
+                        list.fold(BigDecimal.ZERO) { acc, r ->
+                            val qty = if (r.material == "MIXED") {
+                                if (type == MaterialType.FUEL) {
+                                    r.fuelDispatchedQuantity ?: r.fuelQuantity ?: BigDecimal.ZERO
+                                } else {
+                                    r.dieselDispatchedQuantity ?: r.dieselQuantity ?: BigDecimal.ZERO
+                                }
+                            } else if (r.materialType == type) {
+                                r.dispatchedQuantity ?: BigDecimal.ZERO
+                            } else {
+                                BigDecimal.ZERO
                             }
+                            acc.add(qty)
+                        }
 
                     fun sumLoaded(list: List<ReceiptResponse>, type: MaterialType) =
-                        list.filter { it.materialType == type }
-                            .fold(BigDecimal.ZERO) { acc, r ->
-                                acc.add(r.loadedQuantity ?: BigDecimal.ZERO)
+                        list.fold(BigDecimal.ZERO) { acc, r ->
+                            val qty = if (r.material == "MIXED") {
+                                if (type == MaterialType.FUEL) {
+                                    r.fuelQuantity ?: BigDecimal.ZERO
+                                } else {
+                                    r.dieselQuantity ?: BigDecimal.ZERO
+                                }
+                            } else if (r.materialType == type) {
+                                r.loadedQuantity ?: BigDecimal.ZERO
+                            } else {
+                                BigDecimal.ZERO
                             }
+                            acc.add(qty)
+                        }
 
                     val fuelDelivered   = sumDispatched(finalized, MaterialType.FUEL)
                     val dieselDelivered = sumDispatched(finalized, MaterialType.DIESEL)
